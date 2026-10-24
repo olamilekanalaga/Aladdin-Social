@@ -304,3 +304,25 @@ export const announcedDemoToken: Token = {
   history: [8, 9, 8, 11, 13, 12, 16, 18, 17, 21, 23, 25],
 };
 tokens.push(announcedDemoToken);
+
+/** Original call records stay addressable without modifying their timestamp or baseline. */
+export function resolvePost(
+  id: string | undefined,
+  records: Post[],
+): Post | undefined {
+  const post = records.find((p) => p.id === id);
+  if (post) return post;
+  const call = calls.find((c) => c.id === id);
+  return call
+    ? {
+        id: call.id,
+        userId: call.userId,
+        tokenId: call.tokenId,
+        type: "Callout",
+        text: call.text,
+        timestamp: call.timestamp,
+        likes: 0,
+        revisions: call.revisions,
+      }
+    : undefined;
+}

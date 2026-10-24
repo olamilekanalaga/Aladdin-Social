@@ -4,7 +4,7 @@ import type { Chain } from "../models";
 const alphabet = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
 export function demoWalletAddress(chain: Chain, index: number) {
   return chain === "Solana"
-    ? `Demo${"2".repeat(37)}${alphabet[index % 58]}${alphabet[Math.floor(index / 58)]}${alphabet[(index + 3) % 58]}`
+    ? `Demo${"2".repeat(37)}${alphabet[index % 58]}${alphabet[Math.floor(index / 58) % 58]}${alphabet[(index + 3) % 58]}`
     : `0x${(index + 4096).toString(16).padStart(40, "0")}`;
 }
 export function historyForWallet(

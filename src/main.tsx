@@ -3,6 +3,9 @@ import {
   purchaseEvidence,
   tradingEvidence,
 } from "./reputation";
+import { CreateHub } from "./mvp/Hub";
+import { CallEvidence } from "./mvp/Calls";
+import { restoreLaunchedTokens } from "./mvp/state";
 import React, { useState } from "react";
 import { createRoot } from "react-dom/client";
 import {
@@ -48,6 +51,9 @@ import {
   ShieldCheck,
   Star,
 } from "lucide-react";
+const CreateToken = React.lazy(() =>
+  import("./mvp/Create").then((m) => ({ default: m.CreateToken })),
+);
 const LazySpark = React.lazy(() => import("./Spark"));
 function Spark(props: { token: Token; big?: boolean }) {
   return (
@@ -70,6 +76,7 @@ import {
   demoWalletUser,
   onboardingDemoUser,
   personById,
+  resolvePost,
   wallets,
   walletRelationships,
 } from "./data";
@@ -98,11 +105,12 @@ import {
   Terminal,
   AccountAccess,
 } from "./Experiences";
+import "./mvp/mvp.css";
 const nav = [
-  ["Home", "/", Home],
+  ["Wallet", "/", Home],
   ["Discover", "/discover", Compass],
-  ["People", "/people", Users],
-  ["Alerts", "/alerts", Bell],
+  ["Create", "/create", Plus],
+  ["Activity", "/activity", Zap],
   ["Profile", "/profile", CircleUserRound],
 ] as const;
 const chains: Chain[] = [
@@ -231,21 +239,17 @@ function App() {
   const s = useStore();
   const location = useLocation();
   const section =
-    location.pathname === "/" ||
-    location.pathname.startsWith("/asset") ||
-    location.pathname === "/activity"
-      ? "/"
-      : location.pathname.startsWith("/profile") ||
-          location.pathname === "/account"
-        ? "/profile"
-        : location.pathname === "/alerts" ||
-            location.pathname === "/notifications"
-          ? "/alerts"
-          : location.pathname === "/people" ||
-              ["/creators", "/callers", "/traders", "/hire"].includes(
-                location.pathname,
-              )
-            ? "/people"
+    location.pathname === "/activity" ||
+    ["/alerts", "/notifications"].includes(location.pathname)
+      ? "/activity"
+      : location.pathname.startsWith("/create") ||
+          location.pathname === "/launch"
+        ? "/create"
+        : location.pathname.startsWith("/profile") ||
+            location.pathname === "/account"
+          ? "/profile"
+          : location.pathname === "/" || location.pathname.startsWith("/asset")
+            ? "/"
             : "/discover";
   React.useEffect(() => {
     const shortcut = (e: KeyboardEvent) => {
@@ -298,7 +302,7 @@ function App() {
         >
           <span>
             <Icon size={21} strokeWidth={1.65} />
-            {label === "Alerts" && s.notifications.some((n) => !n.read) && (
+            {label === "Activity" && s.notifications.some((n) => !n.read) && (
               <i className="wallet-alert-dot" />
             )}
           </span>
@@ -316,7 +320,7 @@ function App() {
     );
   return (
     <div className="wallet-app">
-      <header className="wallet-app-header">
+      <header className="wallet-app-header" key={location.pathname}>
         <div className="wallet-header-inner">
           <Link className="wallet-brand" to="/" aria-label="Aladdin home">
             <svg viewBox="0 0 32 32" width="30" height="30" aria-hidden="true">
@@ -401,6 +405,16 @@ function App() {
             )}
           </div>
           <div className="wallet-header-actions">
+            <Link
+              className="icon-button notification-shortcut"
+              to="/alerts"
+              aria-label="Notifications"
+            >
+              <Bell size={21} />
+              {s.notifications.some((n) => !n.read) && (
+                <i className="wallet-alert-dot" />
+              )}
+            </Link>
             {["/discover", "/feed", "/people", "/profile", "/account"].includes(
               location.pathname,
             ) && (
@@ -429,6 +443,20 @@ function App() {
             <Route
               path="/discover"
               element={<Discover renderPost={(p) => <PostCard post={p} />} />}
+            />
+            <Route
+              path="/create"
+              element={<CreateHub compose={() => setComposer(true)} />}
+            />
+            <Route
+              path="/create/token"
+              element={
+                <React.Suspense
+                  fallback={<p role="status">Loading token creation…</p>}
+                >
+                  <CreateToken />
+                </React.Suspense>
+              }
             />
             <Route path="/people" element={<People />} />
             <Route path="/alerts" element={<Notifications />} />
@@ -1189,6 +1217,11 @@ function Profile() {
           </button>
         </div>
         <p className="bio">{u.bio}</p>
+        {u.roles.includes("Creator") && (
+          <Link className="wallet-secondary" to={`/hire?creator=${u.id}`}>
+            Request hiring contact <ArrowUpRight size={16} />
+          </Link>
+        )}
       </section>
       <div className="stats-grid">
         {[
@@ -1375,6 +1408,9 @@ function Profile() {
                     </span>
                   </div>
                   <p>{c.text}</p>
+                  <Link className="history-link" to={`/post/${c.id}`}>
+                    Open original call & buy <ArrowUpRight size={14} />
+                  </Link>
                   <small
                     className={
                       purchaseEvidence(c).length ? "positive" : "muted"
@@ -1786,9 +1822,15 @@ function Notifications() {
             <Link
               key={n.id}
               className={`notification-row ${!n.read ? "unread" : ""}`}
-              to={`/token/${n.tokenId}`}
+              to={
+                n.category === "Hiring request"
+                  ? "/hire"
+                  : n.postId
+                    ? `/post/${n.postId}`
+                    : `/token/${n.tokenId}`
+              }
             >
-              <Avatar user={users.find((u) => u.id === n.userId)!} />
+              <Avatar user={personById(n.userId) || demoWalletUser} />
               <span>
                 <b>{n.text}</b>
                 <small>
@@ -1984,13 +2026,23 @@ function Rewards() {
 }
 function PostPage() {
   const { id } = useParams();
-  const p = useStore((s) => s.posts.find((p) => p.id === id));
+  const p = resolvePost(
+    id,
+    useStore((s) => s.posts),
+  );
   return (
     <div className="single-post">
       <Link className="back" to="/">
         <ArrowLeft size={15} /> Back to feed
       </Link>
-      {p ? <PostCard post={p} /> : <Empty />}
+      {p ? (
+        <>
+          <PostCard post={p} />
+          {["Callout", "Thesis"].includes(p.type) && <CallEvidence post={p} />}
+        </>
+      ) : (
+        <Empty />
+      )}
       <p className="muted">
         Demo posts are stored in this browser. Locally created posts are not
         synced to other devices.
@@ -2089,6 +2141,8 @@ function Composer({ close }: { close: () => void }) {
               },
             };
             s.publish(p);
+            if (p.type === "Thesis")
+              s.simulate(p.userId, p.tokenId, "Thesis", p.id);
             setPublished(p);
           }}
         >
@@ -2234,6 +2288,7 @@ function Composer({ close }: { close: () => void }) {
     </Modal>
   );
 }
+restoreLaunchedTokens();
 const client = new QueryClient();
 createRoot(document.getElementById("root")!).render(
   <React.StrictMode>

@@ -1,3 +1,4 @@
+import { resetMVP } from "../mvp/state";
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import type {
@@ -60,7 +61,10 @@ export const useOnboarding = create<OnboardingState>()(
         const data = historyForWallet(wallet, s.wallets.indexOf(wallet));
         set({
           launches: [
-            ...s.launches.filter((l) => l.walletId !== id),
+            ...s.launches.filter(
+              (l) =>
+                l.walletId !== id || l.provenance === "aladdin-demo-launch",
+            ),
             ...data.launches,
           ],
           trades: [
@@ -85,7 +89,10 @@ export const useOnboarding = create<OnboardingState>()(
       setActive: (id) => {
         if (get().wallets.some((w) => w.id === id)) set({ activeWalletId: id });
       },
-      reset: () => set({ ...initial, wallets: [], launches: [], trades: [] }),
+      reset: () => {
+        resetMVP();
+        set({ ...initial, wallets: [], launches: [], trades: [] });
+      },
     }),
     { name: "aladdin-onboarding-v1" },
   ),

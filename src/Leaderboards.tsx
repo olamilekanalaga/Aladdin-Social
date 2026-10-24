@@ -78,6 +78,9 @@ export default function Leaderboards({
   embedded?: boolean;
 }) {
   const config = copy[role];
+  const [minLaunches, setMinLaunches] = useState(0);
+  const [minGraduations, setMinGraduations] = useState(0);
+  const [minMillion, setMinMillion] = useState(0);
   const [search, setSearch] = useState("");
   const [metric, setMetric] = useState(config.criteria[0]);
   const [period, setPeriod] = useState("All time");
@@ -135,6 +138,10 @@ export default function Leaderboards({
     .filter(
       (u) =>
         u.roles.includes(role) &&
+        (role !== "Creator" ||
+          (u.launches >= minLaunches &&
+            u.graduated >= minGraduations &&
+            creatorAchievements(u).above1m >= minMillion)) &&
         Boolean(u.social.externalId) &&
         (role !== "Caller" || !verifiedOnly || qualifiedCalls(u).length > 0) &&
         `${u.name} ${u.social.username}`.includes(search.toLowerCase()),
@@ -196,6 +203,37 @@ export default function Leaderboards({
           <ArrowUpRight size={13} />
         </Link>
       </div>
+      {role === "Creator" && (
+        <div className="creator-filters">
+          <label>
+            Min. launches
+            <input
+              type="number"
+              min="0"
+              value={minLaunches}
+              onChange={(e) => setMinLaunches(Number(e.target.value))}
+            />
+          </label>
+          <label>
+            Min. graduations
+            <input
+              type="number"
+              min="0"
+              value={minGraduations}
+              onChange={(e) => setMinGraduations(Number(e.target.value))}
+            />
+          </label>
+          <label>
+            Min. $1M+ launches
+            <input
+              type="number"
+              min="0"
+              value={minMillion}
+              onChange={(e) => setMinMillion(Number(e.target.value))}
+            />
+          </label>
+        </div>
+      )}
       <div className="toolbar">
         {role === "Creator" ? (
           <label className="creator-ranking-select">
@@ -406,6 +444,11 @@ export default function Leaderboards({
             </article>
           ))}
         </div>
+        {!list.length && (
+          <p className="wallet-empty" role="status">
+            No people match your filters. Try a lower achievement threshold.
+          </p>
+        )}
         <div className="table-scroll">
           <table>
             <thead>

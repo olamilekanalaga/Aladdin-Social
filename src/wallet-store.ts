@@ -1,7 +1,8 @@
+import { useStore } from "./store";
 import { isTokenAvailable } from "./services";
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import { tokens, validAddress } from "./data";
+import { tokens, validAddress, resolvePost } from "./data";
 import type { Chain } from "./models";
 export interface WalletAsset {
   id: string;
@@ -57,6 +58,9 @@ export interface WalletTransaction {
   toAssetId?: string;
   received?: number;
   recipient?: string;
+  realisedPnL?: number;
+  walletId?: string;
+  attribution?: { postId: string; callerId: string };
 }
 interface Operation {
   id: string;
@@ -65,6 +69,8 @@ interface Operation {
   quantity: number;
   toAssetId?: string;
   recipient?: string;
+  walletId?: string;
+  attribution?: { postId: string; callerId: string };
 }
 interface WalletState {
   balances: Record<string, number>;
@@ -192,6 +198,24 @@ export const useWallet = create<WalletState>()(
             ok: false,
             error: "The demo launch has not been detected yet.",
           };
+        if (op.attribution) {
+          const post = resolvePost(
+            op.attribution.postId,
+            useStore.getState().posts,
+          );
+          if (
+            op.type !== "Buy" ||
+            !post ||
+            post.tokenId !== op.toAssetId ||
+            post.userId !== op.attribution.callerId ||
+            !["Callout", "Thesis"].includes(post.type)
+          )
+            return {
+              ok: false,
+              error:
+                "Attribution must match the original call and purchased token.",
+            };
+        }
         const balance = s.balances[asset.id] || 0;
         if (op.type !== "Add funds" && op.quantity > balance + 1e-10)
           return { ok: false, error: "Insufficient demo balance." };
@@ -236,8 +260,17 @@ export const useWallet = create<WalletState>()(
             next[target.id] = (next[target.id] || 0) + received;
           }
         }
+        const basis = entryCost(s.transactions, asset.id);
+        const realisedPnL =
+          op.type === "Sell" &&
+          basis.units >= op.quantity - 1e-8 &&
+          basis.units > 0
+            ? usd * (1 - DEMO_SPREAD) - (op.quantity * basis.cost) / basis.units
+            : undefined;
         const tx: WalletTransaction = {
           ...op,
+          walletId: s.activeWalletId,
+          ...(realisedPnL !== undefined ? { realisedPnL } : {}),
           quantity: op.quantity,
           usd,
           timestamp: new Date().toISOString(),
@@ -253,4 +286,29 @@ export const useWallet = create<WalletState>()(
 
 function sourceChainMismatch(a: WalletAsset, b: WalletAsset) {
   return a.chain !== b.chain;
+}
+
+/** Moving average cost from this wallet’s recorded receipts; absent history is never invented. */
+function entryCost(transactions: WalletTransaction[], assetId: string) {
+  let units = 0,
+    cost = 0;
+  for (const tx of [...transactions].reverse()) {
+    if (
+      tx.assetId === assetId &&
+      tx.type !== "Add funds" &&
+      tx.toAssetId !== assetId
+    ) {
+      const removed = Math.min(units, tx.quantity);
+      cost -= units ? (cost * removed) / units : 0;
+      units -= removed;
+    }
+    if (tx.type === "Add funds" && tx.assetId === assetId) {
+      units += tx.quantity;
+      cost += tx.usd;
+    } else if (tx.toAssetId === assetId && tx.received) {
+      units += tx.received;
+      cost += tx.usd;
+    }
+  }
+  return { units, cost };
 }

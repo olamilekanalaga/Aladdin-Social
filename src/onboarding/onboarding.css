@@ -29,7 +29,7 @@
 }
 .onboarding-mark {
   font-size: 30px;
-  color: #dfc89c;
+  color: #49bfff;
 }
 .onboarding-header > span {
   font-size: 11px;
@@ -70,7 +70,7 @@
   margin: 10px 0 20px;
 }
 .onboarding-step h1 > span {
-  color: #dfc89c;
+  color: #49bfff;
 }
 .onboarding-intro {
   font-size: 15px;
@@ -87,7 +87,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #dfc89c;
+  color: #49bfff;
   margin: 8px 0 28px;
 }
 .onboarding-choices {
@@ -109,7 +109,7 @@
 }
 .onboarding-choices > button:first-child {
   border-color: #6d5d3e;
-  background: #28251e;
+  background: #49bfff12;
 }
 .onboarding-choices > button > span:first-child {
   color: #d9c194;
@@ -567,7 +567,7 @@
 .onboarding-app .wallet-primary:focus-visible,
 .onboarding-app button:focus-visible,
 .onboarding-app a:focus-visible {
-  outline: 2px solid #dfc89c;
+  outline: 2px solid #49bfff;
   outline-offset: 4px;
 }
 .imported-record-list {
@@ -1324,4 +1324,6 @@
   gap: 8px;
   align-items: center;
 }
-.onboarding-step h1:focus{outline:none}
+.onboarding-step h1:focus {
+  outline: none;
+}

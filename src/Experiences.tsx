@@ -2,7 +2,7 @@ import { LaunchJourneyDemo } from "./onboarding/LaunchJourney";
 import { useWallet, walletTotal, formatUSD } from "./wallet-store";
 import { londonLocalToISO } from "./time";
 import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import {
   ShieldCheck,
   ArrowUpRight,
@@ -35,7 +35,12 @@ function useSession() {
 }
 export function Opportunities() {
   const { session, setSession, error, setError } = useSession();
-  const [creator, setCreator] = useState("u1");
+  const [params] = useSearchParams();
+  const [creator, setCreator] = useState(
+    ["u1", "u2"].includes(params.get("creator") || "")
+      ? params.get("creator")!
+      : "u1",
+  );
   const [brief, setBrief] = useState("");
   const [budget, setBudget] = useState("Exploring options");
   const [status, setStatus] = useState("");
@@ -210,6 +215,21 @@ export function Opportunities() {
                 session.csrf,
               );
               setStatus(r.status);
+              useStore.setState((s) => ({
+                notifications: [
+                  {
+                    id: r.id,
+                    userId: creator,
+                    tokenId:
+                      tokens.find((t) => t.creatorId === creator)?.id || "t1",
+                    category: "Hiring request",
+                    text: "Demo hiring request recorded. No contact sent.",
+                    timestamp: new Date().toISOString(),
+                    read: false,
+                  },
+                  ...s.notifications,
+                ],
+              }));
               setRequests(await api("/introductions"));
               setBrief("");
             } catch (e) {

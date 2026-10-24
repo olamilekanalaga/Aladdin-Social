@@ -14,10 +14,10 @@ test("wallet opens on money and assets at iPhone dimensions", async ({
     await expect(page.locator(".asset-row")).toHaveCount(3);
     await expect(page.locator(".post")).toHaveCount(0);
     await expect(page.locator(".wallet-tabbar a")).toHaveText([
-      "Home",
+      "Wallet",
       "Discover",
-      "People",
-      "Alerts",
+      "Create",
+      "Activity",
       "Profile",
     ]);
     const metrics = await page.evaluate(() => ({

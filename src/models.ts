@@ -138,8 +138,10 @@ export type NotificationCategory =
   | "10×"
   | "Price movement"
   | "Announcement"
-  | "Announcement reminder";
+  | "Announcement reminder"
+  | "Hiring request";
 export interface AppNotification {
+  postId?: string;
   id: string;
   userId: string;
   tokenId: string;

@@ -20,7 +20,10 @@ import {
   XIdentityCard,
 } from "./Onboarding";
 import { useStore } from "../store";
-import { money } from "../data";
+import { money, tokens } from "../data";
+import { useMVP } from "../mvp/state";
+import { useWallet } from "../wallet-store";
+import type { Role } from "../models";
 export function HistoricalProfile() {
   const a = useOnboarding();
   const [params, setParams] = useSearchParams();
@@ -298,8 +301,36 @@ export function IdentityManagement() {
     </div>
   );
 }
-export function DiscoveryPreview() {
+export function DiscoveryPreview({ role = "Creator" }: { role?: Role }) {
   const a = useOnboarding();
+  const posts = useStore((s) => s.posts);
+  const evidence = useMVP((s) => s.callPurchases);
+  const ledger = useWallet();
+  const ownCalls = posts.filter(
+    (p) =>
+      ["account-demo", "wallet-demo"].includes(p.userId) &&
+      p.type === "Callout",
+  );
+  const transactions = [
+    ...ledger.transactions,
+    ...Object.entries(ledger.ledgers)
+      .filter(([id]) => id !== ledger.activeWalletId)
+      .flatMap(([, l]) => l.transactions),
+  ];
+  const qualifying = ownCalls.filter((p) =>
+    transactions.some(
+      (tx) =>
+        tx.id === evidence[p.id] &&
+        tx.type === "Buy" &&
+        tx.toAssetId === p.tokenId &&
+        a.wallets.some(
+          (w) =>
+            w.id === tx.walletId &&
+            w.proof &&
+            w.chain === tokens.find((t) => t.id === p.tokenId)?.chain,
+        ),
+    ),
+  );
   const e = discoveryEligibility(a.wallets, a.xIdentity);
   if (a.legacy || !a.completed) return null;
   const stats = summarizeHistory(a.launches, a.trades);
@@ -321,7 +352,11 @@ export function DiscoveryPreview() {
       </div>
       <p>
         {e.demoEligible
-          ? `${stats.launches} launches · ${stats.graduated} graduated · ${a.wallets.length} connected wallet${a.wallets.length === 1 ? "" : "s"}`
+          ? role === "Caller"
+            ? `${ownCalls.length} published calls · ${qualifying.length} with associated demo purchases. Original and failed records remain available.`
+            : role === "Trader"
+              ? `${stats.trades} imported trades · ${transactions.filter((tx) => tx.type === "Buy" || tx.type === "Sell").length} local trade receipts · ${a.wallets.length} connected wallets`
+              : `${stats.launches} launches · ${stats.graduated} graduated · ${a.wallets.length} connected wallet${a.wallets.length === 1 ? "" : "s"}`
           : "Link an X identity to preview social discovery. You can inspect your wallet history without linking."}
       </p>
       <Link to={e.demoEligible ? "/profile/history" : "/profile/identity"}>

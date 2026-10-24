@@ -3,7 +3,7 @@ export default defineConfig({
   testDir: "./tests",
   fullyParallel: false,
   use: {
-    baseURL: "http://127.0.0.1:5173",
+    baseURL: process.env.PLAYWRIGHT_BASE_URL || "http://127.0.0.1:5173",
     headless: true,
     launchOptions: {
       executablePath:

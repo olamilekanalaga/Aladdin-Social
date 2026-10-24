@@ -53,7 +53,7 @@ a:focus-visible,
 input:focus-visible,
 select:focus-visible,
 textarea:focus-visible {
-  outline: 2px solid #cfb377;
+  outline: 2px solid #49bfff;
   outline-offset: 4px;
 }
 button:hover,
@@ -123,7 +123,7 @@ code {
   color: #f27683 !important;
 }
 .gold {
-  color: #d8bd83 !important;
+  color: #49bfff !important;
 }
 .blue {
   color: #6ba5f4;
@@ -168,8 +168,8 @@ code {
 }
 .brand sup {
   font-size: 8px;
-  color: #c4b489;
-  background: #27241d;
+  color: #49bfff;
+  background: #49bfff12;
   padding: 2px 5px;
   border-radius: 3px;
 }
@@ -199,7 +199,7 @@ code {
 }
 .sidebar nav a.active {
   background: #23282d;
-  color: #f1e2bd;
+  color: #49bfff;
 }
 .sidebar nav a.active:before {
   content: "";
@@ -1117,7 +1117,7 @@ main {
 .detail-body > .tabs button.active {
   color: #ddc28d;
   background: none;
-  border-bottom: 2px solid #d8bd83;
+  border-bottom: 2px solid #49bfff;
 }
 .spark.big {
   width: 100%;

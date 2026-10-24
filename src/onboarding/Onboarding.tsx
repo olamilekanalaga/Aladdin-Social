@@ -1,3 +1,4 @@
+import { ensureSession } from "../api";
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
@@ -19,7 +20,7 @@ import {
   FileText,
 } from "lucide-react";
 import type { Chain } from "../models";
-import { money } from "../data";
+import { money, tokens } from "../data";
 import { useWallet } from "../wallet-store";
 import { useStore } from "../store";
 import { useOnboarding } from "./store";
@@ -61,6 +62,7 @@ export function OnboardingFlow({ adding = false }: { adding?: boolean }) {
           : "connect"
       : "welcome",
   );
+  const [accountMode, setAccountMode] = useState("New account");
   const [method, setMethod] = useState<DemoMethod>("browser");
   const [chain, setChain] = useState<Chain>("Solana");
   const [progress, setProgress] = useState(0);
@@ -153,6 +155,7 @@ export function OnboardingFlow({ adding = false }: { adding?: boolean }) {
       .setParticipation(
         useOnboarding.getState().xIdentity ? "social" : "wallet",
       );
+    void ensureSession().catch(() => {});
     navigate(adding ? "/profile/wallets" : "/", { replace: true });
   }
   function resetAll() {
@@ -220,6 +223,22 @@ export function OnboardingFlow({ adding = false }: { adding?: boolean }) {
               <p className="onboarding-intro">
                 Your on-chain history belongs to you. Bring it with you or start
                 fresh.
+              </p>
+              <div className="mvp-auth-choice" aria-label="Account mode">
+                {["New account", "Sign in"].map((v) => (
+                  <button
+                    key={v}
+                    aria-pressed={accountMode === v}
+                    onClick={() => setAccountMode(v)}
+                  >
+                    {v}
+                  </button>
+                ))}
+              </div>
+              <p className="mvp-note">
+                {accountMode === "Sign in"
+                  ? "Demo sign-in uses this browser’s saved profile. Connect an existing wallet to explore inherited history. No production login is configured."
+                  : "Create a local Aladdin demo account with your wallet setup. No password or real authentication required."}
               </p>
               <div className="onboarding-choices">
                 <button onClick={() => setPhase("connect")}>
@@ -792,6 +811,14 @@ export function ImportedRecordList({
               </span>
               <ChevronDown size={15} />
             </summary>
+            {r.provenance === "aladdin-demo-launch" && (
+              <Link
+                className="wallet-secondary"
+                to={`/token/${tokens.find((t) => t.chain === r.chain && t.address === r.tokenAddress)?.id}`}
+              >
+                Open simulated token
+              </Link>
+            )}
             <dl>
               <div>
                 <dt>Highest observed cap</dt>

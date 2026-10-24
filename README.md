@@ -1,5 +1,7 @@
 # Aladdin Social
 
+MVP V1 uses the Signal Blue mobile system with **Wallet · Discover · Create · Activity · Profile** navigation. The existing application now includes a reviewed simulated token-launch wizard, persistent created-token discovery/history, call-linked purchase evidence, caller-attributed trade receipts and unpaid fee estimates, creator achievement filters, profile-to-hiring access and a no-movement Bridge walkthrough. See [the MVP review](artifacts/MVP-V1-REVIEW.md) for journeys, integration boundaries, screenshots and verification limits.
+
 A wallet-first mobile application prototype with creator, caller and trader reputation integrated into discovery and token research. First-time browsers choose an existing-wallet or new-wallet demonstration; completed setup opens directly to balances and holdings. The hierarchy is **Wallet → Assets → Trading → Discovery → Reputation → Opportunities**. Financial data, wallet actions, identity attestations and events remain simulations; no real money, custody or trading is enabled.
 
 ## Run locally
@@ -22,7 +24,7 @@ npm run build
 NODE_ENV=production npm start
 ```
 
-Open http://localhost:3001. A hosting platform may set `PORT`; bind address is `0.0.0.0`. Deploy this Node server with the built `dist` directory, not only a static directory, to retain API-backed permission demonstrations. Vercel deployment is configured in `vercel.json`, with the SPA and API in one project. The existing live application is https://aladdin-social.vercel.app, project `prj_YEmqc2fucAzXNZIo0XKtiVu7em9y`. Its production deployment was confirmed as READY at baseline commit `ff18e58`. Updates are published to its existing Git-connected `main` branch. The connected Vercel app can read deployment metadata but currently denies access to this project’s protected fetch/project APIs; live browser verification remains access-dependent. The unrelated `aladdin-ui` project is not used. A development URL does not imply a public, permanent URL accessible on your phone.
+Open http://localhost:3001. A hosting platform may set `PORT`; bind address is `0.0.0.0`. Deploy this Node server with the built `dist` directory, not only a static directory, to retain API-backed permission demonstrations. Vercel deployment is configured in `vercel.json`, with the SPA and API in one project. The existing live application is https://aladdin-social.vercel.app, project `prj_YEmqc2fucAzXNZIo0XKtiVu7em9y`. The previous onboarding release was confirmed READY at commit `6246fb2`; inspect deployment metadata for the latest MVP release. Updates are published to its existing Git-connected `main` branch. The connected Vercel app can read deployment metadata but currently denies access to this project’s protected fetch/project APIs; live browser verification remains access-dependent. The unrelated `aladdin-ui` project is not used. A development URL does not imply a public, permanent URL accessible on your phone.
 
 ## Wallet onboarding and inherited history
 
@@ -39,7 +41,7 @@ Each existing-wallet demo discovers **18 launches, 9 graduations, 145 SOL in his
 
 `/profile/identity` supports optional simulated X link/unlink. Linking enables a clearly labelled **demo discovery preview**, not actual authenticated public eligibility. Actual public boards require real X OAuth and cryptographic wallet ownership proof. Profiles can keep using the wallet and inspect private history without X.
 
-`/profile/wallets` links/selects wallets. **Profile → Restart onboarding demo** or the setup screen’s **Reset demo** clears demo setup/history/wallet ledgers so both paths can be retested; existing social posts/follows/alert preferences are preserved.
+`/profile/wallets` links/selects wallets. **Profile → Restart onboarding demo** or the setup screen’s **Reset demo** clears demo setup/history/wallet ledgers so both paths can be retested; third-party seed social records/follows/alert preferences are preserved. MVP-created tokens, their launch records and personal call evidence are cleared.
 
 The creator launch walkthrough at `/launch` follows announcement → detection → new `ANXT` token registration → opt-in notification → token detail. The token cannot be discovered or traded in the demonstration before detection. Milestone buttons cover 2×, 5×, 10× and migration. These are manual simulated events, not live listeners or background delivery.
 
@@ -77,6 +79,7 @@ Posts and wallet activity are local to their originating browser and do not sync
 - `src/data.ts`: public fictional seeds and address/token-identity helpers. EVM addresses normalise case; Solana addresses preserve case and must decode to 32 bytes.
 - `src/store.ts`: versioned browser-local Zustand state for social interactions and simulated notification delivery.
 - `src/main.tsx`: five-tab application shell, first-time setup guard, existing social primitives, profiles, composer and alerts.
+- `src/mvp/`: Signal Blue extensions, Create hub, token-launch wizard/registry, call evidence/attribution and Bridge preview.
 - `src/onboarding/`: typed demo identity/wallet/history store; fixture importer; ownership challenge and X-link screens; wallet management, historical profile and launch walkthrough.
 - `src/reputation.ts`: direct creator achievements, matched purchase evidence and verified-demo trading metrics.
 - `src/Wallet.tsx`: wallet home, holdings, activity, reviewed wallet actions, token research/trading, Discover, People and personal Profile.

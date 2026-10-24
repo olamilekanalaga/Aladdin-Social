@@ -6,7 +6,7 @@
   --wallet-line: #272e39;
   --wallet-text: #f2f3f5;
   --wallet-muted: #9ba5b5;
-  --wallet-gold: #dfc89c;
+  --wallet-gold: #49bfff;
   --wallet-positive: #62d6b2;
   --wallet-radius: 16px;
   --wallet-touch: 44px;
@@ -68,7 +68,7 @@
   align-items: center;
   gap: 8px;
   flex-shrink: 0;
-  color: #e0c79a;
+  color: #49bfff;
 }
 .wallet-brand b {
   font-size: 23px;
@@ -115,13 +115,13 @@
 .wallet-header-avatar {
   width: 38px;
   height: 38px;
-  background: #27251f;
+  background: #49bfff12;
   border: 1px solid #635438;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #e4c78b;
+  color: #49bfff;
   font-size: 23px;
 }
 .wallet-app-main {
@@ -174,7 +174,7 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: #28251e;
+  background: #49bfff12;
   color: var(--wallet-gold);
   border-radius: 8px;
   font-size: 20px;
@@ -190,7 +190,7 @@
   height: 5px;
   width: 5px;
   border-radius: 50%;
-  background: #bda578;
+  background: #49bfff;
 }
 .wallet-main {
   min-width: 0;
@@ -254,19 +254,19 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #e1c99d;
+  color: #49bfff;
   transition:
     background 0.15s,
     transform 0.15s;
 }
 .wallet-actions > button:hover > span {
-  background: #34302a;
+  background: #49bfff12;
   transform: translateY(-1px);
 }
 .wallet-actions > button:last-child > span {
-  background: #dec79a;
+  background: #49bfff;
   color: #15191f;
-  border-color: #dec79a;
+  border-color: #49bfff;
 }
 .assets-heading {
   display: flex;
@@ -291,8 +291,8 @@
   white-space: nowrap;
 }
 .wallet-segment > button[aria-selected="true"] {
-  color: #f0e6d3;
-  border-bottom-color: #dfc89c;
+  color: #49bfff;
+  border-bottom-color: #49bfff;
 }
 .quiet-button {
   display: inline-flex;
@@ -332,8 +332,8 @@
   font-size: 28px;
 }
 .asset-icon.t1 {
-  background: #302a1c !important;
-  color: #e3c98d !important;
+  background: #49bfff12 !important;
+  color: #49bfff !important;
 }
 .asset-label {
   min-width: 0;
@@ -483,11 +483,11 @@
   transition: background 0.15s;
 }
 .wallet-primary {
-  background: #dfc99e;
+  background: #49bfff;
   color: #191b20;
 }
 .wallet-primary:hover {
-  background: #eedab3;
+  background: #49bfff;
   color: #15181e;
 }
 .wallet-secondary {
@@ -500,7 +500,7 @@
 }
 .simulation-pill {
   font-size: 11px;
-  color: #c9b88f;
+  color: #49bfff;
   display: inline-flex;
   align-items: center;
   min-height: 25px;

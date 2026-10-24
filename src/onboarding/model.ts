@@ -29,7 +29,7 @@ export interface ImportedLaunch {
   creatorFees: number;
   feeAsset: string;
   observationAt: string;
-  provenance: "fictional-demo-index";
+  provenance: "fictional-demo-index" | "aladdin-demo-launch";
 }
 export interface ImportedTrade {
   id: string;

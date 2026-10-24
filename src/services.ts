@@ -54,3 +54,25 @@ export const tradingExecution: TradingExecutionAdapter = {
 export function isTokenAvailable(id: string) {
   return id !== "t-announced-demo" || useStore.getState().demoTokenDiscovered;
 }
+
+// Future execution boundaries. Demo screens never submit real transactions.
+export interface LaunchExecutionAdapter {
+  review(input: {
+    chain: Chain;
+    name: string;
+    ticker: string;
+    supply: number;
+  }): Promise<{ fee: number; expiresAt: string }>;
+  submit(
+    confirmedIntent: string,
+  ): Promise<{ chain: Chain; address: string; transactionId: string }>;
+}
+export interface BridgeExecutionAdapter {
+  preview(input: {
+    from: Chain;
+    to: Chain;
+    asset: string;
+    amount: number;
+  }): Promise<{ received: number; fee: number }>;
+  submit(confirmedIntent: string): Promise<{ transactionId: string }>;
+}

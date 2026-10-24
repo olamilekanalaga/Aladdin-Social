@@ -27,6 +27,7 @@ interface State {
     userId: string,
     tokenId: string,
     category: NotificationCategory,
+    postId?: string,
   ) => void;
   read: () => void;
 }
@@ -73,7 +74,7 @@ export const useStore = create<State>()(
         })),
       configure: (id, categories) =>
         set((s) => ({ preferences: { ...s.preferences, [id]: categories } })),
-      simulate: (userId, tokenId, category) =>
+      simulate: (userId, tokenId, category, postId) =>
         set((s) =>
           s.follows.includes(userId) &&
           (
@@ -86,6 +87,7 @@ export const useStore = create<State>()(
                     userId,
                     tokenId,
                     category,
+                    ...(postId ? { postId } : {}),
                     text: `Simulated ${category} event from a followed account`,
                     timestamp: new Date().toISOString(),
                     read: false,

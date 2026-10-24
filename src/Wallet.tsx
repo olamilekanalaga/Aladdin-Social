@@ -1,3 +1,5 @@
+import { BridgeDemo } from "./mvp/Bridge";
+import { useMVP } from "./mvp/state";
 import { isTokenAvailable } from "./services";
 import React, { useState } from "react";
 import { Link, useParams, useSearchParams } from "react-router-dom";
@@ -32,7 +34,7 @@ import {
   RotateCcw,
 } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
-import { tokens, users, calls, validAddress, money } from "./data";
+import { tokens, users, calls, validAddress, money, personById } from "./data";
 import { useStore } from "./store";
 import Modal from "./ui/Modal";
 import { useOnboarding } from "./onboarding/store";
@@ -119,6 +121,7 @@ export function WalletHome() {
   const [action, setAction] = useState<
     "Receive" | "Send" | "Swap" | "Add funds" | null
   >(null);
+  const [bridge, setBridge] = useState(false);
   const [tab, setTab] = useState("Tokens");
   const held = walletAssets.filter(
     (a) => (s.balances[a.id] || 0) > 0.000000001,
@@ -177,6 +180,17 @@ export function WalletHome() {
                 {label}
               </button>
             ))}
+          </div>
+          <div className="wallet-extra-actions">
+            <button onClick={() => setBridge(true)}>
+              Bridge <ArrowDownUp size={15} />
+            </button>
+            <button onClick={() => setAction("Add funds")}>
+              Buy crypto <Plus size={15} />
+            </button>
+            <Link to="/create/token">
+              Create token <ChevronRight size={15} />
+            </Link>
           </div>
           <div className="assets-heading">
             <div className="wallet-segment" role="tablist">
@@ -248,6 +262,7 @@ export function WalletHome() {
           <ActivityList transactions={s.transactions.slice(0, 3)} />
         </aside>
       </div>
+      {bridge && <BridgeDemo close={() => setBridge(false)} />}
       {manage && (
         <Modal title="Your wallets" close={() => setManage(false)}>
           <WalletManager close={() => setManage(false)} />
@@ -271,7 +286,11 @@ export function ActivityList({
           <Link
             className="wallet-activity-row"
             key={tx.id}
-            to={`/asset/${tx.toAssetId || tx.assetId}`}
+            to={
+              tx.attribution
+                ? `/post/${tx.attribution.postId}`
+                : `/asset/${tx.toAssetId || tx.assetId}`
+            }
           >
             <span className="activity-symbol">
               {tx.type === "Send" ? (
@@ -301,6 +320,14 @@ export function ActivityList({
                 })}{" "}
                 · Simulated
               </small>
+              {tx.attribution && (
+                <small>
+                  via @
+                  {personById(tx.attribution.callerId)?.social.username ||
+                    "original caller"}{" "}
+                  · Call receipt
+                </small>
+              )}
             </span>
             <span>
               <b>{hidden ? "••••" : formatUSD(tx.usd)}</b>
@@ -336,10 +363,12 @@ export function WalletActivity() {
 export function WalletAction({
   action,
   initialAssetId,
+  attribution,
   close,
 }: {
   action: "Receive" | "Send" | "Swap" | "Add funds" | "Buy" | "Sell";
   initialAssetId?: string;
+  attribution?: { postId: string; callerId: string };
   close: () => void;
 }) {
   const s = useWallet();
@@ -387,6 +416,8 @@ export function WalletAction({
       return setError("Demo deposits support up to $100,000.");
     if (action === "Send" && !validAddress(source.chain, address))
       return setError(`Enter a valid ${source.chain} recipient address.`);
+    if (attribution && to !== initialAssetId)
+      return setError("Buy the original call’s token to preserve attribution.");
     if (isTrade && from === to) return setError("Choose two different assets.");
     if (isTrade && source.chain !== target.chain)
       return setError(
@@ -401,6 +432,7 @@ export function WalletAction({
       assetId: source.id,
       quantity: n,
       ...(isTrade ? { toAssetId: to } : {}),
+      ...(action === "Buy" && attribution ? { attribution } : {}),
       ...(action === "Send" ? { recipient: address } : {}),
     });
     if (!result.ok) {
@@ -528,6 +560,13 @@ export function WalletAction({
               ? formatUSD(n)
               : `${quantity(n)} ${source.ticker}`}
           </div>
+          {attribution && (
+            <p className="mvp-note">
+              Attributed to original caller · post{" "}
+              {attribution.postId.slice(0, 8)}. A fictional 0.3% caller fee is
+              modelled within the 0.5% spread, with no payout.
+            </p>
+          )}
           <dl>
             <div>
               <dt>Action</dt>
@@ -730,6 +769,7 @@ export function AssetDetail() {
   const asset = assetById(id);
   const s = useWallet();
   const social = useStore();
+  const ownLaunch = useMVP((v) => v.launches.find((l) => l.token.id === id));
   const [period, setPeriod] = useState("1D");
   const [action, setAction] = useState<"Buy" | "Sell" | null>(null);
   const [tab, setTab] = useState("Overview");
@@ -928,6 +968,23 @@ export function AssetDetail() {
           )}
         </section>
         <aside className="asset-reputation">
+          {ownLaunch && (
+            <section className="mvp-own-token">
+              {ownLaunch.image && (
+                <img
+                  className="launch-image"
+                  src={ownLaunch.image}
+                  alt={ownLaunch.token.name}
+                />
+              )}
+              <h2>Created by you</h2>
+              <p>Simulated launch · {ownLaunch.launchpad}</p>
+              <Link className="wallet-secondary" to="/profile/history">
+                View creator history <ChevronRight size={16} />
+              </Link>
+              <small>No real token, fees or liquidity. Fixed demo price.</small>
+            </section>
+          )}
           {creator ? (
             <>
               <div className="section-heading">
@@ -988,7 +1045,7 @@ export function AssetDetail() {
                 {calls
                   .filter((c) => c.tokenId === asset.id)
                   .map((c) => (
-                    <Link to={`/profile/${c.userId}`} key={c.id}>
+                    <Link to={`/post/${c.id}`} key={c.id}>
                       <span>
                         <b>{users.find((u) => u.id === c.userId)?.name}</b>
                         <small>
@@ -1058,13 +1115,14 @@ export function Discover({
   const [chain, setChain] = useState("All chains");
   const tab = params.get("view") || "Trending";
   const social = useStore();
+  useMVP((s) => s.launches);
   const q = query.trim().toLowerCase();
   const filtered = tokens
     .filter((t) => isTokenAvailable(t.id))
     .filter(
       (t) =>
         (chain === "All chains" || t.chain === chain) &&
-        `${t.ticker} ${t.name} ${t.address} ${t.chain} ${users.find((u) => u.id === t.creatorId)?.name}`
+        `${t.ticker} ${t.name} ${t.address} ${t.chain} ${users.find((u) => u.id === t.creatorId)?.name || (t.creatorId === "account-demo" ? "You · demo creator" : "Unknown")}`
           .toLowerCase()
           .includes(q),
     )
@@ -1105,6 +1163,14 @@ export function Discover({
           <CalendarDays size={21} />
         </Link>
       </div>
+      <nav className="discover-sections" aria-label="Discovery categories">
+        <Link className="selected" to="/discover">
+          Tokens
+        </Link>
+        <Link to="/creators">Creators</Link>
+        <Link to="/callers">Callers</Link>
+        <Link to="/traders">Traders</Link>
+      </nav>
       <label className="discover-search">
         <Search size={20} />
         <input
@@ -1231,7 +1297,11 @@ export function Discover({
                   {t.ticker} <span>{t.name}</span>
                 </b>
                 <small>
-                  {t.chain} · by {users.find((u) => u.id === t.creatorId)?.name}
+                  {t.chain} · by{" "}
+                  {users.find((u) => u.id === t.creatorId)?.name ||
+                    (t.creatorId === "account-demo"
+                      ? "You · demo creator"
+                      : "Unknown")}
                 </small>
               </span>
               <span className="discovery-spark" aria-hidden="true">
@@ -1312,7 +1382,7 @@ export function People({ initial }: { initial?: Role }) {
           </button>
         ))}
       </div>
-      <DiscoveryPreview />
+      <DiscoveryPreview role={role} />
       <Directory key={role} category={role} embedded />
       <Link className="reputation-link" to="/hire">
         <Users size={20} />
