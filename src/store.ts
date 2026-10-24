@@ -3,6 +3,9 @@ import { persist } from "zustand/middleware";
 import { posts } from "./data";
 import type { Post, AppNotification, NotificationCategory } from "./models";
 interface State {
+  demoLaunchStage: "scheduled" | "announced" | "detected";
+  demoTokenDiscovered: boolean;
+  setDemoLaunchStage: (stage: "scheduled" | "announced" | "detected") => void;
   participation: "social" | "wallet";
   setParticipation: (mode: "social" | "wallet") => void;
   posts: Post[];
@@ -31,6 +34,13 @@ export const useStore = create<State>()(
   persist(
     (set) => ({
       posts,
+      demoLaunchStage: "scheduled",
+      demoTokenDiscovered: false,
+      setDemoLaunchStage: (stage) =>
+        set((s) => ({
+          demoLaunchStage: stage,
+          demoTokenDiscovered: s.demoTokenDiscovered || stage === "detected",
+        })),
       participation: "social",
       setParticipation: (participation) => set({ participation }),
       follows: [],

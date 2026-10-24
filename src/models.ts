@@ -68,6 +68,9 @@ export interface FeeRecord {
   attribution: "demo verified";
 }
 export interface Trade {
+  walletId?: string;
+  evidence?: "demo-verified" | "unverified";
+  closesPosition?: boolean;
   id: string;
   userId: string;
   tokenId: string;

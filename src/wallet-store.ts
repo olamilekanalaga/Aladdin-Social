@@ -1,3 +1,4 @@
+import { isTokenAvailable } from "./services";
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { tokens, validAddress } from "./data";
@@ -67,6 +68,13 @@ interface Operation {
 }
 interface WalletState {
   balances: Record<string, number>;
+  activeWalletId: string;
+  ledgers: Record<
+    string,
+    { balances: Record<string, number>; transactions: WalletTransaction[] }
+  >;
+  activateWallet: (id: string, seed?: boolean) => void;
+  clearAccount: () => void;
   hidden: boolean;
   transactions: WalletTransaction[];
   toggleHidden: () => void;
@@ -113,15 +121,55 @@ export const useWallet = create<WalletState>()(
   persist(
     (set, get) => ({
       balances: { ...initialBalances },
+      activeWalletId: "legacy",
+      ledgers: {},
+      clearAccount: () =>
+        set({
+          balances: {},
+          transactions: [],
+          ledgers: {},
+          activeWalletId: "legacy",
+          hidden: false,
+        }),
+      activateWallet: (id, seed = false) => {
+        const s = get();
+        if (s.activeWalletId === id) return;
+        const ledgers = {
+          ...s.ledgers,
+          [s.activeWalletId]: {
+            balances: s.balances,
+            transactions: s.transactions,
+          },
+        };
+        const ledger =
+          ledgers[id] ||
+          (seed && s.activeWalletId === "legacy"
+            ? { balances: s.balances, transactions: s.transactions }
+            : {
+                balances: seed ? { ...initialBalances } : {},
+                transactions: seed ? [...initialTransactions] : [],
+              });
+        set({
+          activeWalletId: id,
+          ledgers,
+          balances: ledger.balances,
+          transactions: ledger.transactions,
+        });
+      },
       hidden: false,
       transactions: [...initialTransactions],
       toggleHidden: () => set((s) => ({ hidden: !s.hidden })),
-      reset: () =>
+      reset: () => {
+        const s = get();
+        const seeded =
+          s.activeWalletId === "legacy" ||
+          s.transactions.some((t) => t.id === "seed-buy");
         set({
-          balances: { ...initialBalances },
-          transactions: [...initialTransactions],
+          balances: seeded ? { ...initialBalances } : {},
+          transactions: seeded ? [...initialTransactions] : [],
           hidden: false,
-        }),
+        });
+      },
       execute: (op) => {
         const s = get();
         if (s.transactions.some((t) => t.id === op.id))
@@ -135,6 +183,14 @@ export const useWallet = create<WalletState>()(
           return {
             ok: false,
             error: "Enter a valid amount greater than zero.",
+          };
+        if (
+          !isTokenAvailable(asset.id) ||
+          (target && !isTokenAvailable(target.id))
+        )
+          return {
+            ok: false,
+            error: "The demo launch has not been detected yet.",
           };
         const balance = s.balances[asset.id] || 0;
         if (op.type !== "Add funds" && op.quantity > balance + 1e-10)

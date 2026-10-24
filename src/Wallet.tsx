@@ -1,3 +1,4 @@
+import { isTokenAvailable } from "./services";
 import React, { useState } from "react";
 import { Link, useParams, useSearchParams } from "react-router-dom";
 import {
@@ -27,11 +28,16 @@ import {
   LogOut,
   Clock3,
   TrendingUp,
+  Link2,
+  RotateCcw,
 } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import { tokens, users, calls, validAddress, money } from "./data";
 import { useStore } from "./store";
 import Modal from "./ui/Modal";
+import { useOnboarding } from "./onboarding/store";
+import { WalletManager, ResetOnboarding } from "./onboarding/Onboarding";
+import { DiscoveryPreview } from "./onboarding/History";
 import Directory from "./Leaderboards";
 import {
   useWallet,
@@ -107,6 +113,9 @@ function WalletHint() {
 }
 export function WalletHome() {
   const s = useWallet();
+  const account = useOnboarding();
+  const active = account.wallets.find((w) => w.id === account.activeWalletId);
+  const [manage, setManage] = useState(false);
   const [action, setAction] = useState<
     "Receive" | "Send" | "Swap" | "Add funds" | null
   >(null);
@@ -118,10 +127,14 @@ export function WalletHome() {
   return (
     <div className="wallet-home">
       <div className="wallet-context">
-        <Link className="wallet-account-chip" to="/profile">
-          <span className="wallet-mini-icon">✦</span> Wallet 1{" "}
-          <ChevronRight size={13} />
-        </Link>
+        <button
+          className="wallet-account-chip"
+          aria-label={`Wallet selector: ${active?.label || "Wallet 1"}`}
+          onClick={() => setManage(true)}
+        >
+          <span className="wallet-mini-icon">✦</span>{" "}
+          {active?.label || "Wallet 1"} <ChevronDown size={13} />
+        </button>
         <WalletHint />
       </div>
       <div className="wallet-home-grid">
@@ -141,7 +154,11 @@ export function WalletHome() {
           </div>
           <p className="daily-gain">
             <TrendingUp size={15} aria-hidden="true" />{" "}
-            {s.hidden ? "••••" : "+$125.40 (5.31%)"}{" "}
+            {s.hidden
+              ? "••••"
+              : s.transactions.some((t) => t.id === "seed-buy")
+                ? "+$125.40 (5.31%)"
+                : "+$0.00 (0.00%)"}{" "}
             <span>today · illustrative</span>
           </p>
           <div className="wallet-actions">
@@ -231,6 +248,11 @@ export function WalletHome() {
           <ActivityList transactions={s.transactions.slice(0, 3)} />
         </aside>
       </div>
+      {manage && (
+        <Modal title="Your wallets" close={() => setManage(false)}>
+          <WalletManager close={() => setManage(false)} />
+        </Modal>
+      )}
       {action && <WalletAction action={action} close={() => setAction(null)} />}
     </div>
   );
@@ -339,7 +361,11 @@ export function WalletAction({
   );
   const [amount, setAmount] = useState("");
   const [address, setAddress] = useState("");
-  const [chain, setChain] = useState("Solana");
+  const account = useOnboarding();
+  const activeWallet = account.wallets.find(
+    (w) => w.id === account.activeWalletId,
+  );
+  const [chain, setChain] = useState(activeWallet?.chain || "Solana");
   const [step, setStep] = useState<"form" | "review" | "done">("form");
   const [error, setError] = useState("");
   const [copied, setCopied] = useState(false);
@@ -423,7 +449,7 @@ export function WalletAction({
             <select
               value={chain}
               onChange={(e) => {
-                setChain(e.target.value);
+                setChain(e.target.value as typeof chain);
                 setCopied(false);
               }}
             >
@@ -448,7 +474,9 @@ export function WalletAction({
               marginSize={2}
             />
           </div>
-          <h3>Wallet 1 · {chain}</h3>
+          <h3>
+            {activeWallet?.label || "Wallet 1"} · {chain}
+          </h3>
           <p>
             This QR encodes a demo URI, not a payment address. Do not send
             cryptocurrency.
@@ -591,11 +619,13 @@ export function WalletAction({
                   setError("");
                 }}
               >
-                {walletAssets.map((a) => (
-                  <option key={a.id} value={a.id}>
-                    {a.ticker} · {a.chain}
-                  </option>
-                ))}
+                {walletAssets
+                  .filter((a) => isTokenAvailable(a.id))
+                  .map((a) => (
+                    <option key={a.id} value={a.id}>
+                      {a.ticker} · {a.chain}
+                    </option>
+                  ))}
               </select>
             </label>
           )}
@@ -645,7 +675,9 @@ export function WalletAction({
                   onChange={(e) => setTo(e.target.value)}
                 >
                   {walletAssets
-                    .filter((a) => a.chain === source.chain)
+                    .filter(
+                      (a) => a.chain === source.chain && isTokenAvailable(a.id),
+                    )
                     .map((a) => (
                       <option value={a.id} key={a.id}>
                         {a.ticker} · {a.chain}
@@ -706,6 +738,22 @@ export function AssetDetail() {
       <div className="wallet-empty">
         <h1>Asset not found</h1>
         <Link to="/discover">Discover assets</Link>
+      </div>
+    );
+  if (!isTokenAvailable(asset.id))
+    return (
+      <div className="wallet-page">
+        <Link className="back" to="/launch">
+          <ArrowLeft size={16} /> Launch announcements
+        </Link>
+        <h1>Launch not detected yet</h1>
+        <p className="wallet-subtitle">
+          This demonstration token becomes available after simulated launch
+          detection. No real deployment is performed.
+        </p>
+        <Link className="wallet-primary" to="/launch">
+          Open launch demonstration
+        </Link>
       </div>
     );
   const token = tokens.find((t) => t.id === asset.tokenId);
@@ -1012,6 +1060,7 @@ export function Discover({
   const social = useStore();
   const q = query.trim().toLowerCase();
   const filtered = tokens
+    .filter((t) => isTokenAvailable(t.id))
     .filter(
       (t) =>
         (chain === "All chains" || t.chain === chain) &&
@@ -1263,6 +1312,7 @@ export function People({ initial }: { initial?: Role }) {
           </button>
         ))}
       </div>
+      <DiscoveryPreview />
       <Directory key={role} category={role} embedded />
       <Link className="reputation-link" to="/hire">
         <Users size={20} />
@@ -1276,6 +1326,8 @@ export function People({ initial }: { initial?: Role }) {
   );
 }
 export function MyProfile({ account }: { account: React.ReactNode }) {
+  const setup = useOnboarding();
+  const [restart, setRestart] = useState(false);
   const [reset, setReset] = useState(false);
   const [info, setInfo] = useState("");
   const social = useStore();
@@ -1287,14 +1339,24 @@ export function MyProfile({ account }: { account: React.ReactNode }) {
         <Settings size={21} />
       </div>
       <div className="my-profile-identity">
-        <span>✦</span>
+        <span style={setup.xIdentity ? { fontSize: 28 } : undefined}>
+          {setup.xIdentity ? "AR" : "✦"}
+        </span>
         <h2>
-          {social.participation === "wallet" ? "Your wallet" : "launchking"}
+          {setup.legacy
+            ? social.participation === "wallet"
+              ? "Your wallet"
+              : "launchking"
+            : setup.xIdentity?.name || "Your wallet"}
         </h2>
         <p>
-          {social.participation === "wallet"
-            ? "Wallet-only demo account"
-            : "@launchking · social demo identity"}
+          {setup.legacy
+            ? social.participation === "wallet"
+              ? "Wallet-only demo account"
+              : "@launchking · social demo identity"
+            : setup.xIdentity
+              ? "@" + setup.xIdentity.username + " · simulated X identity"
+              : "Wallet-only demo account"}
         </p>
         <span className="simulation-pill">
           Local demo · not authenticated with X
@@ -1302,7 +1364,9 @@ export function MyProfile({ account }: { account: React.ReactNode }) {
       </div>
       <div className="profile-wallet-summary">
         <span>
-          <Wallet size={20} /> Wallet 1
+          <Wallet size={20} />{" "}
+          {setup.wallets.find((w) => w.id === setup.activeWalletId)?.label ||
+            "Wallet 1"}
         </span>
         <b>
           {wallet.hidden ? "••••" : formatUSD(walletTotal(wallet.balances))}
@@ -1313,8 +1377,10 @@ export function MyProfile({ account }: { account: React.ReactNode }) {
           [
             [
               "Your reputation",
-              "/profile/" +
-                (social.participation === "wallet" ? "wallet-demo" : "u1"),
+              setup.legacy
+                ? "/profile/" +
+                  (social.participation === "wallet" ? "wallet-demo" : "u1")
+                : "/profile/history",
               ShieldCheck,
             ],
             ["Wallet activity", "/activity", Clock3],
@@ -1341,15 +1407,21 @@ export function MyProfile({ account }: { account: React.ReactNode }) {
           <small>Coming later</small>
           <ChevronRight size={17} />
         </button>
-        <button
-          onClick={() =>
-            setInfo(
-              "Wallet connections and X OAuth are not connected. No private keys are created, imported, exported or stored. Demo assets are local simulation records.",
-            )
-          }
-        >
+        <Link to="/profile/wallets">
           <Wallet size={19} />
-          <span>Wallets and connected accounts</span>
+          <span>Connected wallets</span>
+          <ChevronRight size={17} />
+        </Link>
+        <Link to="/profile/identity">
+          <Link2 size={19} />
+          <span>
+            {setup.xIdentity ? "Linked X identity" : "Link your X identity"}
+          </span>
+          <ChevronRight size={17} />
+        </Link>
+        <button onClick={() => setRestart(true)}>
+          <RotateCcw size={19} />
+          <span>Restart onboarding demo</span>
           <ChevronRight size={17} />
         </button>
         <button onClick={wallet.toggleHidden}>
@@ -1376,6 +1448,7 @@ export function MyProfile({ account }: { account: React.ReactNode }) {
         <br />
         No real funds, keys, transactions or paid access.
       </p>
+      {restart && <ResetOnboarding close={() => setRestart(false)} />}
       {info && (
         <Modal title="Prototype feature" close={() => setInfo("")}>
           <p>{info}</p>

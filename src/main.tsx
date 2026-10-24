@@ -1,3 +1,8 @@
+import {
+  creatorAchievements,
+  purchaseEvidence,
+  tradingEvidence,
+} from "./reputation";
 import React, { useState } from "react";
 import { createRoot } from "react-dom/client";
 import {
@@ -63,6 +68,7 @@ import {
   money,
   validAddress,
   demoWalletUser,
+  onboardingDemoUser,
   personById,
   wallets,
   walletRelationships,
@@ -73,6 +79,9 @@ import { demoMarket } from "./services";
 import type { User, Token, Post, NotificationCategory, Chain } from "./models";
 import "./style.css";
 import Modal from "./ui/Modal";
+import { useOnboarding } from "./onboarding/store";
+import { OnboardingFlow, WalletManagementPage } from "./onboarding/Onboarding";
+import { HistoricalProfile, IdentityManagement } from "./onboarding/History";
 import {
   WalletHome,
   Discover,
@@ -216,6 +225,7 @@ function sharePost(post: Post) {
   );
 }
 function App() {
+  const onboarding = useOnboarding();
   const [composer, setComposer] = useState(false);
   const [query, setQuery] = useState("");
   const s = useStore();
@@ -258,7 +268,7 @@ function App() {
     window.scrollTo(0, 0);
   }, [location.pathname]);
   const results = useQuery({
-    queryKey: ["search", query],
+    queryKey: ["search", query, s.demoTokenDiscovered],
     queryFn: () => demoMarket.search(query),
     enabled: query.trim().length > 0,
   });
@@ -297,6 +307,13 @@ function App() {
       ))}
     </nav>
   );
+  if (!onboarding.completed || location.pathname === "/onboarding/add")
+    return (
+      <OnboardingFlow
+        key={location.pathname}
+        adding={onboarding.completed && location.pathname === "/onboarding/add"}
+      />
+    );
   return (
     <div className="wallet-app">
       <header className="wallet-app-header">
@@ -437,6 +454,13 @@ function App() {
               path="/callers"
               element={<People key="Caller" initial="Caller" />}
             />
+            <Route path="/profile/history" element={<HistoricalProfile />} />
+            <Route
+              path="/profile/account-demo"
+              element={<HistoricalProfile />}
+            />
+            <Route path="/profile/wallets" element={<WalletManagementPage />} />
+            <Route path="/profile/identity" element={<IdentityManagement />} />
             <Route path="/profile/:id" element={<Profile />} />
             <Route path="/tokens" element={<TokenDirectory />} />
             <Route path="/token/:id" element={<AssetDetail />} />
@@ -532,7 +556,13 @@ function Dashboard({ onCreate }: { onCreate: () => void }) {
           </div>
           <button className="quick-compose" onClick={onCreate}>
             <Avatar
-              user={s.participation === "wallet" ? demoWalletUser : users[0]}
+              user={
+                s.participation === "wallet"
+                  ? demoWalletUser
+                  : useOnboarding.getState().legacy
+                    ? users[0]
+                    : onboardingDemoUser
+              }
               size={33}
             />
             <span>Share a thesis. Make your conviction count.</span>
@@ -1114,6 +1144,7 @@ function Profile() {
   const { id } = useParams();
   const u = personById(id);
   const [tab, setTab] = useState("Overview");
+  const [contactStatus, setContactStatus] = useState("");
   const [alerts, setAlerts] = useState(false);
   const s = useStore();
   if (!u) return <Empty />;
@@ -1190,6 +1221,56 @@ function Profile() {
         onChange={setTab}
       />
       <div className="profile-content">
+        {u.roles.includes("Creator") &&
+          ["Overview", "Launch history"].includes(tab) && (
+            <section className="panel padded creator-direct-history">
+              <h2>
+                Creator achievements <Badge>Demo data</Badge>
+              </h2>
+              <div className="direct-achievements">
+                <span>
+                  <b>{creatorAchievements(u).above100k}</b>
+                  <small>Reached $100K</small>
+                </span>
+                <span>
+                  <b>{creatorAchievements(u).above500k}</b>
+                  <small>Reached $500K</small>
+                </span>
+                <span>
+                  <b>{creatorAchievements(u).above1m}</b>
+                  <small>Reached $1M+</small>
+                </span>
+              </div>
+              <p className="muted">
+                Highest observed cap: {money(creatorAchievements(u).highest)} ·{" "}
+                {creatorAchievements(u).walletCount} demo-attested creator
+                wallets. These are direct historical achievements, not a trust
+                score.
+              </p>
+              <div className="creator-public-contact">
+                <small>Public demonstration contact · non-deliverable</small>
+                <code>creator+{u.social.username}@example.invalid</code>
+                <button
+                  className="button"
+                  onClick={async () => {
+                    try {
+                      await navigator.clipboard.writeText(
+                        `creator+${u.social.username}@example.invalid`,
+                      );
+                      setContactStatus("Demo contact copied");
+                    } catch {
+                      setContactStatus("Select the displayed address to copy");
+                    }
+                  }}
+                >
+                  Copy demo public contact
+                </button>
+                <p role="status" className="onboarding-caption">
+                  {contactStatus}
+                </p>
+              </div>
+            </section>
+          )}
         {["Overview", "Launch history"].includes(tab) && (
           <section className="panel padded">
             <h2>Launch history · sample records</h2>
@@ -1248,6 +1329,12 @@ function Profile() {
                 Total demo trades{" "}
                 <b>{trades.filter((t) => t.userId === id).length}</b>
               </span>
+              <span>
+                Trading volume <b>{money(tradingEvidence(u).volume)}</b>
+              </span>
+              <span>
+                Closed positions <b>{tradingEvidence(u).closedPositions}</b>
+              </span>
             </div>
             {trades
               .filter((x) => x.userId === id)
@@ -1288,6 +1375,15 @@ function Profile() {
                     </span>
                   </div>
                   <p>{c.text}</p>
+                  <small
+                    className={
+                      purchaseEvidence(c).length ? "positive" : "muted"
+                    }
+                  >
+                    {purchaseEvidence(c).length
+                      ? "Demo qualified call · same-token buy from an attested wallet"
+                      : "Recorded call only · no qualifying purchase evidence"}
+                  </small>
                   <small>
                     Original: {new Date(c.timestamp).toLocaleString("en-GB")} ·
                     Baseline {money(c.baselineCap)} · {c.revisions.length}{" "}
@@ -1432,7 +1528,7 @@ function TokenDirectory() {
   const [tab, setTab] = useState("Trending");
   const [period, setPeriod] = useState("24h");
   const { data, isPending } = useQuery({
-    queryKey: ["tokens"],
+    queryKey: ["tokens", useStore((state) => state.demoTokenDiscovered)],
     queryFn: demoMarket.listTokens,
   });
   const offset = ["1h", "6h", "24h"].indexOf(period) + 1;
@@ -1970,7 +2066,12 @@ function Composer({ close }: { close: () => void }) {
               );
             const p: Post = {
               id: crypto.randomUUID(),
-              userId: s.participation === "wallet" ? demoWalletUser.id : "u1",
+              userId:
+                s.participation === "wallet"
+                  ? demoWalletUser.id
+                  : useOnboarding.getState().legacy
+                    ? "u1"
+                    : onboardingDemoUser.id,
               type: type as "Thesis" | "Callout",
               text: text.trim(),
               tokenId: token.id,
@@ -2000,7 +2101,13 @@ function Composer({ close }: { close: () => void }) {
             }}
           />
           <Identity
-            user={s.participation === "wallet" ? demoWalletUser : users[0]}
+            user={
+              s.participation === "wallet"
+                ? demoWalletUser
+                : useOnboarding.getState().legacy
+                  ? users[0]
+                  : onboardingDemoUser
+            }
           />
           <label>
             Your {type.toLowerCase()}

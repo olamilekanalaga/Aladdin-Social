@@ -10,19 +10,32 @@ import {
   Megaphone,
 } from "lucide-react";
 import { users, tokens, launches, calls, trades, money } from "./data";
+import {
+  creatorAchievements,
+  qualifiedCalls,
+  tradingEvidence,
+} from "./reputation";
 import { useStore } from "./store";
 import type { Role, User } from "./models";
 const copy = {
   Creator: {
     title: "Creators",
     sub: "Launch outcomes, graduation rate and attributable fees.",
-    criteria: ["Graduation rate", "Unique buyers", "Sustained outcomes"],
+    criteria: [
+      "Launches",
+      "Graduations",
+      "Reached $100K",
+      "Reached $500K",
+      "Reached $1M+",
+      "Highest observed cap",
+      "Creator fees",
+    ],
     icon: Users,
   },
   Trader: {
     title: "Traders",
     sub: "Realised PnL, win rate and trading consistency.",
-    criteria: ["Realised PnL", "Win rate", "Consistency"],
+    criteria: ["Realised PnL", "Win rate", "Trading volume"],
     icon: ChartNoAxesCombined,
   },
   Caller: {
@@ -69,49 +82,64 @@ export default function Leaderboards({
   const [metric, setMetric] = useState(config.criteria[0]);
   const [period, setPeriod] = useState("All time");
   const store = useStore();
+  const [verifiedOnly, setVerifiedOnly] = useState(true);
   const Icon = config.icon;
   const days = period === "7D" ? 7 : period === "30D" ? 30 : Infinity;
   const within = (timestamp: string) =>
     Date.parse(timestamp) >=
     Date.parse("2026-10-24T23:59:59Z") - days * 86400000;
   const buys = (u: User) =>
-    trades.filter((t) => t.userId === u.id && t.side === "Buy");
+    tradingEvidence(u).trades.filter((t) => t.side === "Buy");
   const userCalls = (u: User) =>
-    calls.filter((c) => c.userId === u.id && within(c.timestamp));
+    (role === "Caller" && verifiedOnly
+      ? qualifiedCalls(u)
+      : calls.filter((c) => c.userId === u.id)
+    ).filter((c) => within(c.timestamp));
   const success = (u: User) => {
     const c = userCalls(u);
     return c.length
       ? (c.filter((c) => c.outcome >= 2).length / c.length) * 100
       : 0;
   };
-  const consistency = (u: User) =>
-    Math.round(u.winRate * 0.7 + Math.min(100, Math.abs(u.pnl) / 5000) * 0.3);
   const buyerCount = (u: User) => u.launches * 280 + u.graduated * 120;
-  const score = (u: User) =>
-    role === "Creator"
-      ? metric === "Unique buyers"
-        ? buyerCount(u)
-        : metric === "Sustained outcomes"
-          ? Math.round((u.graduated / u.launches) * 100) * 0.7 + u.winRate * 0.3
-          : u.graduated / u.launches
-      : role === "Trader"
-        ? metric === "Win rate"
-          ? u.winRate
-          : metric === "Consistency"
-            ? consistency(u)
-            : u.pnl
-        : metric === "Verified buys"
-          ? buys(u).length
-          : metric === "Trading performance"
-            ? u.pnl
-            : success(u);
+  const rankingValue = (u: User) => {
+    if (role === "Creator") {
+      const a = creatorAchievements(u);
+      return metric === "Launches"
+        ? a.launches
+        : metric === "Graduations"
+          ? a.graduated
+          : metric === "Reached $100K"
+            ? a.above100k
+            : metric === "Reached $500K"
+              ? a.above500k
+              : metric === "Reached $1M+"
+                ? a.above1m
+                : metric === "Highest observed cap"
+                  ? a.highest
+                  : a.fees;
+    }
+    if (role === "Trader")
+      return metric === "Win rate"
+        ? u.winRate
+        : metric === "Trading volume"
+          ? tradingEvidence(u).volume
+          : u.pnl;
+    return metric === "Verified buys"
+      ? qualifiedCalls(u).length
+      : metric === "Trading performance"
+        ? u.pnl
+        : success(u);
+  };
   const list = users
     .filter(
       (u) =>
         u.roles.includes(role) &&
+        Boolean(u.social.externalId) &&
+        (role !== "Caller" || !verifiedOnly || qualifiedCalls(u).length > 0) &&
         `${u.name} ${u.social.username}`.includes(search.toLowerCase()),
     )
-    .sort((a, b) => score(b) - score(a));
+    .sort((a, b) => rankingValue(b) - rankingValue(a));
   return (
     <>
       <div className="page-heading">
@@ -169,19 +197,34 @@ export default function Leaderboards({
         </Link>
       </div>
       <div className="toolbar">
-        <div className="tabs" role="tablist">
-          {config.criteria.map((c) => (
-            <button
-              key={c}
-              role="tab"
-              aria-selected={c === metric}
-              className={c === metric ? "active" : ""}
-              onClick={() => setMetric(c)}
+        {role === "Creator" ? (
+          <label className="creator-ranking-select">
+            Rank by
+            <select
+              aria-label="Rank creators by"
+              value={metric}
+              onChange={(e) => setMetric(e.target.value)}
             >
-              {c}
-            </button>
-          ))}
-        </div>
+              {config.criteria.map((c) => (
+                <option key={c}>{c}</option>
+              ))}
+            </select>
+          </label>
+        ) : (
+          <div className="tabs" role="tablist">
+            {config.criteria.map((c) => (
+              <button
+                key={c}
+                role="tab"
+                aria-selected={c === metric}
+                className={c === metric ? "active" : ""}
+                onClick={() => setMetric(c)}
+              >
+                {c}
+              </button>
+            ))}
+          </div>
+        )}
         <div className="tabs" role="tablist">
           {["7D", "30D", "All time"].map((p) => (
             <button
@@ -196,6 +239,19 @@ export default function Leaderboards({
           ))}
         </div>
       </div>
+      {role === "Caller" && (
+        <label className="caller-evidence-filter">
+          <input
+            type="checkbox"
+            checked={verifiedOnly}
+            onChange={(e) => setVerifiedOnly(e.target.checked)}
+          />{" "}
+          Verified callers only{" "}
+          <small>
+            Published call + matching token purchase + demo-attested wallet
+          </small>
+        </label>
+      )}
       <div className="stats-grid">
         <div className="panel stat">
           <small>X-linked {role.toLowerCase()}s</small>
@@ -313,7 +369,7 @@ export default function Leaderboards({
                     : [
                         [money(u.pnl), "Realised PnL"],
                         [u.winRate + "%", "Win rate"],
-                        [consistency(u) + "/100", "Consistency"],
+                        [money(tradingEvidence(u).volume), "Trading volume"],
                       ]
                 ).map(([value, label]) => (
                   <span key={label}>
@@ -322,6 +378,28 @@ export default function Leaderboards({
                   </span>
                 ))}
               </div>
+              {role === "Creator" && (
+                <div className="creator-achievement-line">
+                  $100K+: {creatorAchievements(u).above100k} · $500K+:{" "}
+                  {creatorAchievements(u).above500k} · $1M+:{" "}
+                  {creatorAchievements(u).above1m}
+                  <br />
+                  Peak {money(creatorAchievements(u).highest)} ·{" "}
+                  {creatorAchievements(u).walletCount} demo-attested wallets
+                </div>
+              )}
+              {role === "Trader" && (
+                <div className="creator-achievement-line">
+                  {tradingEvidence(u).closedPositions} closed positions ·{" "}
+                  {tradingEvidence(u).walletCount} connected wallets
+                </div>
+              )}
+              {role === "Caller" && !qualifiedCalls(u).length && (
+                <p className="unqualified-caller">
+                  Recorded calls · no verified token purchase; excluded from
+                  verified ranks.
+                </p>
+              )}
               <Link to={`/profile/${u.id}`}>
                 View full history <ArrowUpRight size={14} />
               </Link>
@@ -340,7 +418,7 @@ export default function Leaderboards({
                     <th>Graduation rate</th>
                     <th>Unique buyers</th>
                     <th>Attributable fees</th>
-                    <th>30d retention</th>
+                    <th>$100K / $500K / $1M+ · Peak</th>
                   </>
                 ) : role === "Caller" ? (
                   <>
@@ -355,7 +433,7 @@ export default function Leaderboards({
                     <th>Realised PnL</th>
                     <th>Unrealised PnL</th>
                     <th>Win rate</th>
-                    <th>Consistency</th>
+                    <th>Trading volume / closed</th>
                     <th>Recent trades</th>
                   </>
                 )}
@@ -396,7 +474,13 @@ export default function Leaderboards({
                         <small>Attributed seed records</small>
                       </td>
                       <td>
-                        {u.winRate - 12}%<small>Demo retention measure</small>
+                        {creatorAchievements(u).above100k} /{" "}
+                        {creatorAchievements(u).above500k} /{" "}
+                        {creatorAchievements(u).above1m}
+                        <small>
+                          {money(creatorAchievements(u).highest)} highest
+                          observed
+                        </small>
                       </td>
                     </>
                   ) : role === "Caller" ? (
@@ -441,7 +525,10 @@ export default function Leaderboards({
                         </div>
                       </td>
                       <td>
-                        {consistency(u)}/100<small>Demo composite</small>
+                        {money(tradingEvidence(u).volume)}
+                        <small>
+                          {tradingEvidence(u).closedPositions} closed positions
+                        </small>
                       </td>
                       <td>
                         {
@@ -471,10 +558,10 @@ export default function Leaderboards({
         </div>
         <p className="table-note">
           {role === "Creator"
-            ? "Ranks use all-time fictional creator history. “Not graduated” includes active launches and is not a count of failures. Selected period applies to launch records below."
+            ? "Ranks use the selected direct achievement from fictional creator history, never an AI reputation score. “Not graduated” includes active launches and is not a count of failures. Selected period applies to launch records below."
             : role === "Caller"
-              ? "Ranking success uses original call baselines for the selected period. Buying evidence and trading results are separate demo metrics."
-              : "All-time PnL, win rate and consistency ranks; selected period filters recent activity. Consistency demo composite = 70% win rate + 30% capped PnL magnitude."}
+              ? "Verified ranks require a published original call and a same-token buy from an attested wallet on the matching chain. Evidence is simulated; unqualified posts remain in all-call records."
+              : "Direct all-time PnL, win rate and verified demo trade volume; selected period filters recent activity. No composite reputation score."}
         </p>
       </div>
       <section className="panel padded" style={{ marginTop: 20 }}>

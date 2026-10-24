@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect } from "./fixtures";
 import AxeBuilder from "@axe-core/playwright";
 test("key screens pass automated WCAG A/AA checks", async ({ page }) => {
   for (const route of [

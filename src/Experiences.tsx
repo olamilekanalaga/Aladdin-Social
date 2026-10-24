@@ -1,3 +1,4 @@
+import { LaunchJourneyDemo } from "./onboarding/LaunchJourney";
 import { useWallet, walletTotal, formatUSD } from "./wallet-store";
 import { londonLocalToISO } from "./time";
 import { useState, useEffect } from "react";
@@ -436,7 +437,8 @@ export function LaunchExperience() {
           {
             id: "a1",
             userId: "u1",
-            title: "A new chapter for the Aladdin community",
+            title:
+              "I’m launching a new token on Monday at 5 PM. Turn on Aladdin notifications.",
             scheduledAt: "2026-10-26T17:00:00Z",
             tokenId: "t1",
             reminder: false,
@@ -471,6 +473,7 @@ export function LaunchExperience() {
         </div>
         <span className="badge">No token deployment</span>
       </div>
+      <LaunchJourneyDemo />
       <div className="notification-layout">
         <section>
           <div className="panel padded">

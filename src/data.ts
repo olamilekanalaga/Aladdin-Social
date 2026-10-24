@@ -167,6 +167,9 @@ export const calls: Callout[] = users
 export const trades: Trade[] = users.flatMap((u, j) =>
   tokens.slice(0, 4).map((t, i) => ({
     id: `tr${j}-${i}`,
+    walletId: `activity-${u.id}-${t.chain}`,
+    closesPosition: Boolean(i % 2),
+    evidence: u.id === "u6" ? "unverified" : "demo-verified",
     userId: u.id,
     tokenId: t.id,
     side: i % 2 ? "Sell" : "Buy",
@@ -228,22 +231,76 @@ export const demoWalletUser: User = {
   bio: "Wallet-only demonstration account. No X identity linked; wallet ownership is not verified.",
 };
 export const personById = (id: string | undefined) =>
-  id === demoWalletUser.id ? demoWalletUser : users.find((u) => u.id === id);
+  id === demoWalletUser.id
+    ? demoWalletUser
+    : id === "account-demo"
+      ? onboardingDemoUser
+      : users.find((u) => u.id === id);
 
-export const wallets: Wallet[] = users.map((u, i) => ({
-  id: `w${i + 1}`,
-  chain: "Base",
-  address: `0x${String(i + 1)
-    .padStart(2, "0")
-    .repeat(20)}`,
-}));
-export const walletRelationships: WalletRelationship[] = users.map((u, i) => ({
-  userId: u.id,
-  walletId: `w${i + 1}`,
+export const wallets: Wallet[] = users.flatMap((u, i) =>
+  (["Solana", "Base", "Ethereum", "BNB Chain"] as const).map((chain) => ({
+    id: `activity-${u.id}-${chain}`,
+    chain,
+    address:
+      chain === "Solana"
+        ? `Demo${"3".repeat(38)}${"123456789A"[i]}1`
+        : `0x${String(i + 1)
+            .padStart(2, "0")
+            .repeat(20)}`,
+  })),
+);
+export const walletRelationships: WalletRelationship[] = wallets.map((w) => ({
+  userId: w.id.split("-")[1],
+  walletId: w.id,
   status: "verified",
-  role: u.roles.includes("Creator")
+  role: users
+    .find((u) => u.id === w.id.split("-")[1])!
+    .roles.includes("Creator")
     ? "creator"
-    : u.roles.includes("Trader")
+    : users.find((u) => u.id === w.id.split("-")[1])!.roles.includes("Trader")
       ? "trader"
       : "caller",
 }));
+
+export const onboardingDemoUser: User = {
+  id: "account-demo",
+  name: "Alex River",
+  social: {
+    provider: "x",
+    externalId: "fictional-x-account-demo",
+    username: "alexriver_demo",
+    verified: false,
+  },
+  roles: ["Creator", "Trader"],
+  avatar: "AR",
+  color: "#ae9874",
+  followers: 0,
+  launches: 0,
+  graduated: 0,
+  winRate: 0,
+  pnl: 0,
+  fees: 0,
+  bio: "Your demonstration history. A simulated X identity; not authenticated with X.",
+};
+
+export const announcedDemoToken: Token = {
+  id: "t-announced-demo",
+  name: "Aladdin Next",
+  ticker: "ANXT",
+  icon: "✦",
+  color: "#d9be88",
+  chain: "Solana",
+  address: `Demo${"6".repeat(39)}1`,
+  price: 0.00002,
+  cap: 20000,
+  change: 1.2,
+  volume: 6400,
+  holders: 42,
+  age: "0m",
+  creatorId: "u1",
+  narrative: "Community",
+  description:
+    "Fictional token used to demonstrate announcement → launch detection → token discovery → follower notification. No real launch or trade occurs.",
+  history: [8, 9, 8, 11, 13, 12, 16, 18, 17, 21, 23, 25],
+};
+tokens.push(announcedDemoToken);

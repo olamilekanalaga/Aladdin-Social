@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect } from "./fixtures";
 test("creator discovery, follow, alerts and simulated launch notification", async ({
   page,
 }) => {

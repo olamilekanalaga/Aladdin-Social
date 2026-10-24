@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect } from "./fixtures";
 import { tokens } from "../src/data";
 test("send validates network address and amount before changing a persisted holding", async ({
   page,
