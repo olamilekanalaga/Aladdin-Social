@@ -22,7 +22,7 @@ npm run build
 NODE_ENV=production npm start
 ```
 
-Open http://localhost:3001. A hosting platform may set `PORT`; bind address is `0.0.0.0`. Deploy this Node server with the built `dist` directory, not only a static directory, to retain API-backed permission demonstrations. No public deployment has been performed. The available Sites connection targets Cloudflare Workers, while this repository uses an Express Node API; its required publishing helpers were also unavailable in this workspace. A compatible Node host or a reviewed Workers adapter is needed for a complete hosted deployment. A development URL does not imply a public, permanent URL accessible on your phone.
+Open http://localhost:3001. A hosting platform may set `PORT`; bind address is `0.0.0.0`. Deploy this Node server with the built `dist` directory, not only a static directory, to retain API-backed permission demonstrations. Vercel deployment is configured in `vercel.json`, with the SPA and API in one project. No live Vercel deployment is claimed yet: creating the requested new `aladdin-social` project was rejected by the connected Vercel account with HTTP 403. The existing `aladdin-ui` project belongs to a different repository and was not changed. A development URL does not imply a public, permanent URL accessible on your phone.
 
 ## Product experiences
 
@@ -48,7 +48,10 @@ Open http://localhost:3001. A hosting platform may set `PORT`; bind address is `
 - `src/Experiences.tsx`: opportunities, advanced intelligence, announcements, terminal and demo participation modes.
 - `src/Spark.tsx`: lazy-loaded Recharts visualisation; chart code is separate from the initial app bundle.
 - `src/services.ts`: future provider contracts, including X OAuth, SocialData historical search, SolanaTracker/market data, Dune, Solana/EVM RPC, notifications, wallets and disabled execution.
-- `server/index.mjs`: Express demo API, HTTP-only SameSite sessions, session request tokens, feature permissions, private synthetic relationship records and introduction request capture.
+- `server/index.mjs`: local Node entrypoint.
+- `server/app.mjs`: shared Express API and API-level feature permission enforcement.
+- `server/session.mjs`: signed, HTTP-only SameSite demo sessions that work across independent serverless instances.
+- `api/handler.js`: Vercel function entrypoint; `vercel.json` keeps API routing separate from SPA deep links.
 
 ### API permission model
 
@@ -64,7 +67,7 @@ Open http://localhost:3001. A hosting platform may set `PORT`; bind address is `
 
 `basic` has no advanced permissions; `intelligence` grants identity, relationships and export; `opportunities` grants introduction requests only. UI controls deliberately simulate entitlements so the flow is reviewable without payments. **This is not production billing or authentication:** replace demo session creation and self-service entitlement selection before any real paid access. Server responses, not CSS blur, enforce feature checks. Gated records are not shipped in client code. Private contact data is never returned. Public wallet/token records remain publicly inspectable; advanced access is not a promise to conceal public-chain identity.
 
-Demo sessions and introduction requests are in server memory, expiring after 24 hours and resetting on server restart. They do not sync with the browser's local social state. No credentials, wallet private keys or production Aladdin/Vlak records are used.
+Demo sessions expire after 24 hours. Sessions and the five latest introduction receipts are stored in a signed HTTP-only cookie rather than process memory, so independent serverless instances can validate them with the same signing key. Briefs and budgets are validated but not retained; there is no actual introduction delivery. Cookie receipts do not sync between devices. Local development uses an ephemeral signing key unless one is configured, so sessions reset on restart. No credentials, wallet private keys or production Aladdin/Vlak records are used.
 
 ### Data and ranking interpretation
 
@@ -82,6 +85,19 @@ npm test
 Start API and Vite before `npm test`. Playwright uses `/usr/bin/chromium` in this workspace; override `PLAYWRIGHT_CHROMIUM_EXECUTABLE` or install Playwright Chromium elsewhere. Tests exercise discovery → profile → follow → alerts → simulated launch, publishing and baseline persistence, comments/bookmarks, Share to X intent construction (intercepted fixture, no real X publication), trader/caller records including failures, chain filters, API 401/403/200 boundaries, simulated introductions, launch announcements and responsive routes.
 
 Screenshots are generated in `artifacts/` at desktop 1536×1024, tablet 834×1024, and phone 390×1024 viewports. A 1536×1024 viewport crop is also included. Visual direction follows the reference's restrained dark information density with an independent warm-gold Aladdin identity, per the later instruction to use it as inspiration rather than copy it. No pixel-equivalence claim.
+
+## Deploy a new Aladdin Social project on Vercel
+
+Use a new project named `aladdin-social`; do not reuse `aladdin-ui` (linked to a different demo repository).
+
+1. Import `olamilekanalaga/Aladdin-Social` in Vercel under your intended team.
+2. Keep framework **Vite**, build command `npm run build`, output `dist`, and Node.js **24.x**. The tracked configuration also deploys the Express API as a Node function.
+3. Configure `ALADDIN_SOCIAL_DEMO_SESSION_SECRET` as a server-only secret for the deployment environment. Use a cryptographically random value of at least 32 bytes, generated privately; never use a `VITE_` prefix or commit it. Production and preview should use separate values. The API fails closed on Vercel if this variable is absent.
+4. Deploy, then verify `/`, `/creators`, `/hire`, `/launch`, `/account`, post sharing, and authenticated API requests on the resulting URL. A 401 from `GET /api/session` before creating a session is expected; a SPA HTML response on that API URL is a routing error.
+
+The backend uses the shared key to validate signed demo sessions across serverless instances. This is not real account verification or paid access. Social posts, follows and announcements are still browser-local and do not sync between phone and computer. A database and real authentication remain future work.
+
+The connected Vercel API returned `403 forbidden` when creating a new project. No authenticated CLI fallback is configured in this workspace. Project creation/access is the remaining external blocker; no existing Vercel project was overwritten.
 
 ## Before production
 
