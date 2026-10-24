@@ -14,7 +14,12 @@ export default function Spark({
       aria-label={`${token.ticker} simulated price history`}
     >
       <ResponsiveContainer width="100%" height="100%">
-        <AreaChart data={token.history.map((value, i) => ({ value, i }))}>
+        <AreaChart
+          data={token.history.map((value, i) => ({
+            value: (value / (token.history.at(-1) || 1)) * token.price,
+            i,
+          }))}
+        >
           <defs>
             <linearGradient
               id={`fill-${token.id}-${big}`}
@@ -38,6 +43,14 @@ export default function Spark({
               fontSize: 11,
             }}
             labelFormatter={() => "Simulated sample"}
+            formatter={(value) => [
+              new Intl.NumberFormat("en-US", {
+                style: "currency",
+                currency: "USD",
+                maximumFractionDigits: Number(value) < 1 ? 6 : 2,
+              }).format(Number(value)),
+              "Price",
+            ]}
           />
           <Area
             type="linear"

@@ -1,8 +1,21 @@
 import { test, expect } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 test("key screens pass automated WCAG A/AA checks", async ({ page }) => {
-  for (const route of ["/", "/creators", "/hire", "/launch", "/account"]) {
+  for (const route of [
+    "/",
+    "/discover",
+    "/people",
+    "/alerts",
+    "/profile",
+    "/asset/t1",
+    "/hire",
+    "/launch",
+    "/account",
+  ]) {
     await page.goto(route);
+    await page.locator(".wallet-screen").evaluate(async (el) => {
+      await Promise.all(el.getAnimations().map((a) => a.finished));
+    });
     const scan = await new AxeBuilder({ page })
       .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
       .analyze();
@@ -12,12 +25,11 @@ test("key screens pass automated WCAG A/AA checks", async ({ page }) => {
 test("mobile navigation and keyboard composer work", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/");
-  await page.getByRole("button", { name: "Open navigation" }).click();
-  await expect(
-    page.getByRole("link", { name: "Hire", exact: true }),
-  ).toBeVisible();
-  await page.getByRole("link", { name: "Hire", exact: true }).click();
-  await expect(page).toHaveURL(/hire/);
+  await page
+    .getByRole("navigation", { name: "Main mobile navigation" })
+    .getByRole("link", { name: "Discover", exact: true })
+    .click();
+  await expect(page).toHaveURL(/discover/);
   await page.getByRole("button", { name: "Create", exact: true }).click();
   await expect(page.getByRole("dialog")).toBeVisible();
   await page.keyboard.press("Escape");

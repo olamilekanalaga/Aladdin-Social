@@ -4,11 +4,11 @@ import {
   BrowserRouter,
   Routes,
   Route,
-  NavLink,
   Link,
   useParams,
   useNavigate,
   useSearchParams,
+  useLocation,
 } from "react-router-dom";
 import {
   QueryClient,
@@ -17,11 +17,10 @@ import {
 } from "@tanstack/react-query";
 import {
   Home,
+  Compass,
+  CircleUserRound,
+  ChevronDown,
   Users,
-  ChartNoAxesCombined,
-  Megaphone,
-  Coins,
-  List,
   Bell,
   Search,
   Plus,
@@ -38,9 +37,6 @@ import {
   Globe,
   Copy,
   ExternalLink,
-  X,
-  Settings,
-  Menu,
   SlidersHorizontal,
   CheckCheck,
   ArrowLeft,
@@ -72,10 +68,20 @@ import {
   walletRelationships,
 } from "./data";
 import { useStore } from "./store";
+import { walletAssets } from "./wallet-store";
 import { demoMarket } from "./services";
 import type { User, Token, Post, NotificationCategory, Chain } from "./models";
 import "./style.css";
-import Directory from "./Leaderboards";
+import Modal from "./ui/Modal";
+import {
+  WalletHome,
+  Discover,
+  People,
+  MyProfile,
+  AssetDetail,
+  WalletActivity,
+  WalletAssets,
+} from "./Wallet";
 import {
   Opportunities,
   IntelligenceAccess,
@@ -85,15 +91,10 @@ import {
 } from "./Experiences";
 const nav = [
   ["Home", "/", Home],
-  ["Creators", "/creators", Users],
-  ["Traders", "/traders", ChartNoAxesCombined],
-  ["Callers", "/callers", Megaphone],
-  ["Tokens", "/tokens", Coins],
-  ["Hire", "/hire", Users],
-  ["Launch", "/launch", Zap],
-  ["Terminal", "/terminal", ChartNoAxesCombined],
-  ["Lists", "/lists", List],
-  ["Notifications", "/notifications", Bell],
+  ["Discover", "/discover", Compass],
+  ["People", "/people", Users],
+  ["Alerts", "/alerts", Bell],
+  ["Profile", "/profile", CircleUserRound],
 ] as const;
 const chains: Chain[] = [
   "Solana",
@@ -217,9 +218,25 @@ function sharePost(post: Post) {
 function App() {
   const [composer, setComposer] = useState(false);
   const [query, setQuery] = useState("");
-  const [menu, setMenu] = useState(false);
-  const [notice, setNotice] = useState("");
   const s = useStore();
+  const location = useLocation();
+  const section =
+    location.pathname === "/" ||
+    location.pathname.startsWith("/asset") ||
+    location.pathname === "/activity"
+      ? "/"
+      : location.pathname.startsWith("/profile") ||
+          location.pathname === "/account"
+        ? "/profile"
+        : location.pathname === "/alerts" ||
+            location.pathname === "/notifications"
+          ? "/alerts"
+          : location.pathname === "/people" ||
+              ["/creators", "/callers", "/traders", "/hire"].includes(
+                location.pathname,
+              )
+            ? "/people"
+            : "/discover";
   React.useEffect(() => {
     const shortcut = (e: KeyboardEvent) => {
       if (
@@ -237,107 +254,70 @@ function App() {
     document.addEventListener("keydown", shortcut);
     return () => document.removeEventListener("keydown", shortcut);
   }, []);
+  React.useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [location.pathname]);
   const results = useQuery({
     queryKey: ["search", query],
     queryFn: () => demoMarket.search(query),
     enabled: query.trim().length > 0,
   });
-  return (
-    <>
-      <aside className={`sidebar ${menu ? "open" : ""}`}>
-        {menu && (
-          <button
-            className="icon-button close-menu"
-            aria-label="Close navigation"
-            onClick={() => setMenu(false)}
-          >
-            <X size={19} />
-          </button>
-        )}
-        <Link className="brand" to="/">
-          <span className="lamp">🪔</span>
-          <b>
-            Aladdin<span> Social</span>
-          </b>
-          <sup>Beta</sup>
+  const nativeMatches = walletAssets.filter(
+    (a) =>
+      !a.tokenId &&
+      query.trim() &&
+      `${a.name} ${a.ticker}`
+        .toLowerCase()
+        .includes(query.trim().toLowerCase()),
+  );
+  const navigation = (className: string) => (
+    <nav
+      className={className}
+      aria-label={
+        className === "wallet-tabbar"
+          ? "Main mobile navigation"
+          : "Main navigation"
+      }
+    >
+      {nav.map(([label, to, Icon]) => (
+        <Link
+          key={label}
+          to={to}
+          className={section === to ? "active" : ""}
+          aria-current={section === to ? "page" : undefined}
+        >
+          <span>
+            <Icon size={21} strokeWidth={1.65} />
+            {label === "Alerts" && s.notifications.some((n) => !n.read) && (
+              <i className="wallet-alert-dot" />
+            )}
+          </span>
+          <span>{label}</span>
         </Link>
-        <div className="workspace-label">YOUR EDGE, ONCHAIN</div>
-        <nav>
-          {nav.map(([name, path, Icon]) => (
-            <NavLink
-              onClick={() => setMenu(false)}
-              end={path === "/"}
-              to={path}
-              key={path}
-            >
-              <Icon size={17} />
-              {name}
-              {name === "Notifications" &&
-                s.notifications.some((n) => !n.read) && <i className="dot" />}
-            </NavLink>
-          ))}
-        </nav>
-        <div className="nav-label">EXPLORE</div>
-        <nav>
-          {[
-            ["Top Creators", "/creators", Trophy],
-            ["Top Traders", "/traders", ChartNoAxesCombined],
-            ["Top Callers", "/callers", Megaphone],
-            ["Trending Tokens", "/tokens", Flame],
-            ["Narratives", "/narratives", Globe],
-            ["Airdrops & Rewards", "/rewards", Zap],
-          ].map(([name, path, Icon]) => (
-            <Link key={name as string} to={path as string}>
-              <Icon size={16} />
-              {name as string}
-            </Link>
-          ))}
-        </nav>
-        <div className="sidebar-bottom">
-          <button
-            className="connect"
-            onClick={() =>
-              setNotice(
-                "You are using a local demo identity. X OAuth is not connected. You can share published posts through X’s confirmation screen.",
-              )
-            }
-          >
-            <span className="xmark">𝕏</span>
-            <span>
-              <b>Connect X</b>
-              <small>Bring your reputation</small>
-            </span>
-            <ArrowUpRight size={16} />
-          </button>
-          <Link to="/portfolio" className="portfolio">
-            <small>
-              Unified demo balance <ArrowUpRight size={12} />
-            </small>
-            <b>$1,240.32</b>
-            <span className="positive">
-              +$142.48 <small>(12.4%)</small>
-            </span>
-            <Spark token={tokens[0]} />
+      ))}
+    </nav>
+  );
+  return (
+    <div className="wallet-app">
+      <header className="wallet-app-header">
+        <div className="wallet-header-inner">
+          <Link className="wallet-brand" to="/" aria-label="Aladdin home">
+            <svg viewBox="0 0 32 32" width="30" height="30" aria-hidden="true">
+              <path
+                d="M6 18h20l-3 7H12zM6 18l-4-5 8 3M25 18c7-5 9 3 1 4M15 26h8v2H13z"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.7"
+                strokeLinejoin="round"
+              />
+              <path
+                d="M17 15c-5-6 7-5 2-12 10 7-1 10-2 12"
+                fill="currentColor"
+              />
+            </svg>
+            <b>Aladdin</b>
           </Link>
-          <Link to="/account" className="account">
-            <Avatar user={{ ...users[0], avatar: "✦" }} size={30} />
-            <span>
-              <b>Your workspace</b>
-              <small>Local demo account</small>
-            </span>
-            <Settings size={15} />
-          </Link>
-        </div>
-      </aside>
-      <div className="app">
-        <header className="topbar">
-          <button
-            className="icon-button mobile-menu"
-            aria-label="Open navigation"
-            onClick={() => setMenu(!menu)}
-          >
-            <Menu size={20} />
-          </button>
+          {navigation("wallet-desktop-nav")}{" "}
           <div className="search-wrap">
             <Search size={17} />
             <input
@@ -361,6 +341,23 @@ function App() {
                         <Identity user={u} onNavigate={() => setQuery("")} />
                       </div>
                     ))}
+                    {nativeMatches.map((a) => (
+                      <Link
+                        to={`/asset/${a.id}`}
+                        key={a.id}
+                        onClick={() => setQuery("")}
+                      >
+                        <span className="token-icon" style={{ color: a.color }}>
+                          {a.icon}
+                        </span>
+                        <span>
+                          {a.name}
+                          <small>
+                            {a.ticker} · {a.chain}
+                          </small>
+                        </span>
+                      </Link>
+                    ))}
                     {results.data?.tokens.map((t) => (
                       <Link
                         key={t.id}
@@ -377,7 +374,8 @@ function App() {
                       </Link>
                     ))}
                     {!results.data?.users.length &&
-                      !results.data?.tokens.length && (
+                      !results.data?.tokens.length &&
+                      !nativeMatches.length && (
                         <p>No matching people or tokens.</p>
                       )}
                   </>
@@ -385,58 +383,66 @@ function App() {
               </div>
             )}
           </div>
-          <span className="demo-status">
-            <i /> Demo environment
-          </span>
-          <button
-            className="button light create"
-            onClick={() => setComposer(true)}
-          >
-            <Plus size={15} /> Create
-          </button>
-          <Link
-            className="icon-button notification-icon"
-            aria-label="Notifications"
-            to="/notifications"
-          >
-            <Bell size={19} />
-            {s.notifications.some((n) => !n.read) && <i className="dot" />}
-          </Link>
-          <Link to="/account" aria-label="Your demo account">
-            <Avatar
-              user={s.participation === "wallet" ? demoWalletUser : users[0]}
-              size={31}
-            />
-          </Link>
-        </header>
-        <div className="demo-strip">
-          <span>THE REPUTATION LAYER</span>
-          <span>
-            Follow the person. Verify the history. <b>Discover the activity.</b>
-          </span>
-          <Badge>All data simulated</Badge>
+          <div className="wallet-header-actions">
+            {["/discover", "/feed", "/people", "/profile", "/account"].includes(
+              location.pathname,
+            ) && (
+              <button
+                className="icon-button"
+                aria-label="Create"
+                onClick={() => setComposer(true)}
+              >
+                <Plus size={21} />
+              </button>
+            )}
+            <Link
+              className="wallet-header-avatar"
+              aria-label="Your demo account"
+              to="/profile"
+            >
+              {s.participation === "wallet" ? "◈" : "✦"}
+            </Link>
+          </div>
         </div>
-        <main>
+      </header>
+      <main className="wallet-app-main">
+        <div className="wallet-screen" key={location.pathname}>
+          {" "}
           <Routes>
             <Route
-              path="/"
-              element={<Dashboard onCreate={() => setComposer(true)} />}
+              path="/discover"
+              element={<Discover renderPost={(p) => <PostCard post={p} />} />}
+            />
+            <Route path="/people" element={<People />} />
+            <Route path="/alerts" element={<Notifications />} />
+            <Route
+              path="/profile"
+              element={<MyProfile account={<AccountAccess />} />}
             />
             <Route
+              path="/feed"
+              element={<Dashboard onCreate={() => setComposer(true)} />}
+            />
+
+            <Route path="/" element={<WalletHome />} />
+            <Route
               path="/creators"
-              element={<Directory key="Creator" category="Creator" />}
+              element={<People key="Creator" initial="Creator" />}
             />
             <Route
               path="/traders"
-              element={<Directory key="Trader" category="Trader" />}
+              element={<People key="Trader" initial="Trader" />}
             />
             <Route
               path="/callers"
-              element={<Directory key="Caller" category="Caller" />}
+              element={<People key="Caller" initial="Caller" />}
             />
             <Route path="/profile/:id" element={<Profile />} />
             <Route path="/tokens" element={<TokenDirectory />} />
-            <Route path="/token/:id" element={<TokenPage />} />
+            <Route path="/token/:id" element={<AssetDetail />} />
+            <Route path="/asset/:id" element={<AssetDetail />} />
+            <Route path="/activity" element={<WalletActivity />} />
+            <Route path="/assets" element={<WalletAssets />} />
             <Route path="/hire" element={<Opportunities />} />
             <Route path="/launch" element={<LaunchExperience />} />
             <Route path="/terminal" element={<Terminal />} />
@@ -445,7 +451,7 @@ function App() {
             <Route path="/notifications" element={<Notifications />} />
             <Route path="/narratives" element={<Narratives />} />
             <Route path="/rewards" element={<Rewards />} />
-            <Route path="/portfolio" element={<Portfolio />} />
+            <Route path="/portfolio" element={<WalletHome />} />
             <Route path="/post/:id" element={<PostPage />} />
             <Route
               path="*"
@@ -457,33 +463,14 @@ function App() {
               }
             />
           </Routes>
-        </main>
-        <footer>
-          Aladdin Social{" "}
-          <span>
-            Fictional data · No financial advice · No real-money execution
-          </span>
-          <span className="positive">● Systems in demo mode</span>
-        </footer>
-      </div>
-      <nav className="bottom-nav">
-        {nav.slice(0, 5).map(([name, path, Icon]) => (
-          <NavLink end={path === "/"} key={name} to={path}>
-            <Icon size={19} />
-            <span>{name}</span>
-          </NavLink>
-        ))}
-      </nav>
+        </div>
+      </main>
+      <footer className="wallet-app-footer">
+        Aladdin Social <span>Demo only · No real funds or execution</span>
+      </footer>
+      {navigation("wallet-tabbar")}
       {composer && <Composer close={() => setComposer(false)} />}
-      {notice && (
-        <Modal title="Demo account" close={() => setNotice("")}>
-          <p>{notice}</p>
-          <button className="button light" onClick={() => setNotice("")}>
-            Got it
-          </button>
-        </Modal>
-      )}
-    </>
+    </div>
   );
 }
 function Dashboard({ onCreate }: { onCreate: () => void }) {
@@ -1102,20 +1089,6 @@ function TokenDetail({ token: t }: { token: Token }) {
     </section>
   );
 }
-function TokenPage() {
-  const { id } = useParams();
-  const t = tokens.find((t) => t.id === id);
-  return t ? (
-    <div className="token-page">
-      <Link className="back" to="/tokens">
-        <ArrowLeft size={15} /> Token discovery
-      </Link>
-      <TokenDetail key={t.id} token={t} />
-    </div>
-  ) : (
-    <Empty />
-  );
-}
 function Empty() {
   return (
     <div className="panel empty">
@@ -1698,7 +1671,7 @@ function Notifications() {
   return (
     <>
       <PageTitle
-        title="Notifications"
+        title="Alerts"
         subtitle="Stay close to the people and activity that matter."
       />
       <div className="toolbar">
@@ -1736,76 +1709,81 @@ function Notifications() {
             </p>
           )}
         </section>
-        <section className="panel padded">
-          <h2>
-            <Zap size={17} className="gold" /> Event simulator
-          </h2>
-          <p className="muted">
-            Events are delivered only for followed accounts and enabled
-            categories.
-          </p>
-          <label>
-            Person
-            <select value={user} onChange={(e) => setUser(e.target.value)}>
-              {users.map((u) => (
-                <option key={u.id} value={u.id}>
-                  {u.name}
-                </option>
-              ))}
-            </select>
-          </label>
-          <Follow user={users.find((u) => u.id === user)!} />
-          <button className="button" onClick={() => setSettings(true)}>
-            <SlidersHorizontal size={14} /> Configure alerts
-          </button>
-          <label>
-            Event
-            <select
-              value={category}
-              onChange={(e) =>
-                setCategory(e.target.value as NotificationCategory)
-              }
+        <details className="alert-demo-tools">
+          <summary>
+            Demo event tools <ChevronDown size={15} />
+          </summary>
+          <section className="panel padded">
+            <h2>
+              <Zap size={17} className="gold" /> Event simulator
+            </h2>
+            <p className="muted">
+              Events are delivered only for followed accounts and enabled
+              categories.
+            </p>
+            <label>
+              Person
+              <select value={user} onChange={(e) => setUser(e.target.value)}>
+                {users.map((u) => (
+                  <option key={u.id} value={u.id}>
+                    {u.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <Follow user={users.find((u) => u.id === user)!} />
+            <button className="button" onClick={() => setSettings(true)}>
+              <SlidersHorizontal size={14} /> Configure alerts
+            </button>
+            <label>
+              Event
+              <select
+                value={category}
+                onChange={(e) =>
+                  setCategory(e.target.value as NotificationCategory)
+                }
+              >
+                {[
+                  "Launch",
+                  "Post",
+                  "Graduation",
+                  "Migration",
+                  "Buy",
+                  "Sell",
+                  "Thesis",
+                  "Callout",
+                  "2×",
+                  "5×",
+                  "10×",
+                  "Price movement",
+                  "Announcement",
+                  "Announcement reminder",
+                ].map((c) => (
+                  <option key={c}>{c}</option>
+                ))}
+              </select>
+            </label>
+            <button
+              className="button light"
+              onClick={() => {
+                const before = useStore.getState().notifications.length;
+                s.simulate(
+                  user,
+                  tokens.find((t) => t.creatorId === user)?.id || "t1",
+                  category,
+                );
+                setMessage(
+                  useStore.getState().notifications.length > before
+                    ? "Simulated notification delivered."
+                    : "No delivery: follow this account and enable this event category.",
+                );
+              }}
             >
-              {[
-                "Launch",
-                "Post",
-                "Graduation",
-                "Migration",
-                "Buy",
-                "Sell",
-                "Thesis",
-                "Callout",
-                "2×",
-                "5×",
-                "10×",
-                "Price movement",
-                "Announcement",
-                "Announcement reminder",
-              ].map((c) => (
-                <option key={c}>{c}</option>
-              ))}
-            </select>
-          </label>
-          <button
-            className="button light"
-            onClick={() => {
-              const before = useStore.getState().notifications.length;
-              s.simulate(
-                user,
-                tokens.find((t) => t.creatorId === user)?.id || "t1",
-                category,
-              );
-              setMessage(
-                useStore.getState().notifications.length > before
-                  ? "Simulated notification delivered."
-                  : "No delivery: follow this account and enable this event category.",
-              );
-            }}
-          >
-            Trigger simulated event <Zap size={13} />
-          </button>
-          <p role="status">{message}</p>
-        </section>
+              Trigger simulated event <Zap size={13} />
+            </button>
+            <p role="status">{message}</p>
+          </section>
+        </details>
       </div>
       {settings && (
         <AlertSettings
@@ -1908,44 +1886,6 @@ function Rewards() {
     </>
   );
 }
-function Portfolio() {
-  return (
-    <>
-      <PageTitle
-        title="Your portfolio"
-        subtitle="A unified view of simulated positions across chains."
-      />
-      <div className="stats-grid">
-        <div className="panel stat">
-          <small>Unified demo balance</small>
-          <h2>$1,240.32</h2>
-          <span className="positive">+12.4% simulated</span>
-        </div>
-        <div className="panel stat">
-          <small>Realised PnL</small>
-          <h2>$142.48</h2>
-          <span>No real wallets connected</span>
-        </div>
-      </div>
-      <div className="panel padded">
-        <h2>Demo positions</h2>
-        {tokens.slice(0, 4).map((t, i) => (
-          <Link className="history-row" to={`/token/${t.id}`} key={t.id}>
-            <TokenIcon token={t} />
-            <span>
-              <b>{t.ticker}</b>
-              <small>{t.chain}</small>
-            </span>
-            <b>{money(1240.32 / (i + 2))}</b>
-            <span className={t.change > 0 ? "positive" : "negative"}>
-              {t.change}%
-            </span>
-          </Link>
-        ))}
-      </div>
-    </>
-  );
-}
 function PostPage() {
   const { id } = useParams();
   const p = useStore((s) => s.posts.find((p) => p.id === id));
@@ -1959,78 +1899,6 @@ function PostPage() {
         Demo posts are stored in this browser. Locally created posts are not
         synced to other devices.
       </p>
-    </div>
-  );
-}
-function Modal({
-  title,
-  close,
-  children,
-}: {
-  title: string;
-  close: () => void;
-  children: React.ReactNode;
-}) {
-  const ref = React.useRef<HTMLDivElement>(null);
-  React.useEffect(() => {
-    const previous = document.activeElement as HTMLElement;
-    const el = ref.current;
-    const focusable = () =>
-      Array.from(
-        el?.querySelectorAll<HTMLElement>(
-          "button,input,select,textarea,a[href]",
-        ) || [],
-      );
-    focusable()[0]?.focus();
-    const handler = (e: KeyboardEvent) => {
-      if (e.key === "Escape") close();
-      if (e.key === "Tab") {
-        const list = focusable();
-        if (e.shiftKey && document.activeElement === list[0]) {
-          e.preventDefault();
-          list.at(-1)?.focus();
-        } else if (!e.shiftKey && document.activeElement === list.at(-1)) {
-          e.preventDefault();
-          list[0]?.focus();
-        }
-      }
-    };
-    document.addEventListener("keydown", handler);
-    const old = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.removeEventListener("keydown", handler);
-      document.body.style.overflow = old;
-      previous?.focus();
-    };
-  }, [close]);
-  return (
-    <div
-      className="modal-backdrop"
-      role="presentation"
-      onMouseDown={(e) => {
-        if (e.target === e.currentTarget) close();
-      }}
-    >
-      <div
-        className="modal"
-        role="dialog"
-        aria-modal="true"
-        aria-label={title}
-        ref={ref}
-      >
-        <div className="modal-head">
-          <h2>{title}</h2>
-          <button
-            className="icon-button"
-            aria-label="Close dialog"
-            onClick={close}
-          >
-            <X size={20} />
-          </button>
-        </div>
-        {children}
-      </div>
     </div>
   );
 }

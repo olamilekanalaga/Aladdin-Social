@@ -15,19 +15,19 @@ import type { Role, User } from "./models";
 const copy = {
   Creator: {
     title: "Creators",
-    sub: "Discover the people behind the launches. The whole history, not the highlight reel.",
+    sub: "Launch outcomes, graduation rate and attributable fees.",
     criteria: ["Graduation rate", "Unique buyers", "Sustained outcomes"],
     icon: Users,
   },
   Trader: {
     title: "Traders",
-    sub: "Follow the conviction. Examine realised results, consistency and the trades behind them.",
+    sub: "Realised PnL, win rate and trading consistency.",
     criteria: ["Realised PnL", "Win rate", "Consistency"],
     icon: ChartNoAxesCombined,
   },
   Caller: {
     title: "Callers",
-    sub: "An original thesis. An immutable baseline. An outcome everyone can inspect.",
+    sub: "Original call times, market-cap baselines and subsequent outcomes.",
     criteria: ["Call success", "Verified buys", "Trading performance"],
     icon: Megaphone,
   },
@@ -57,7 +57,13 @@ function compactIdentity(u: User) {
     </Link>
   );
 }
-export default function Leaderboards({ category: role }: { category: Role }) {
+export default function Leaderboards({
+  category: role,
+  embedded = false,
+}: {
+  category: Role;
+  embedded?: boolean;
+}) {
   const config = copy[role];
   const [search, setSearch] = useState("");
   const [metric, setMetric] = useState(config.criteria[0]);
@@ -111,10 +117,14 @@ export default function Leaderboards({ category: role }: { category: Role }) {
       <div className="page-heading">
         <div>
           <div className="eyebrow">PEOPLE FIRST. EVIDENCE ALWAYS.</div>
-          <h1>
-            {config.title}
-            <span className="gold">.</span>
-          </h1>
+          {embedded ? (
+            <h2>{config.title}</h2>
+          ) : (
+            <h1>
+              {config.title}
+              <span className="gold">.</span>
+            </h1>
+          )}
           <p>{config.sub}</p>
         </div>
         <span className="leader-emblem">
@@ -261,6 +271,62 @@ export default function Leaderboards({ category: role }: { category: Role }) {
               onChange={(e) => setSearch(e.target.value)}
             />
           </label>
+        </div>
+        <div className="people-mobile-list">
+          {list.map((u, i) => (
+            <article className="people-mobile-person" key={u.id}>
+              <div>
+                <span className="people-rank">{i + 1}</span>
+                {compactIdentity(u)}
+                <button
+                  className={
+                    store.follows.includes(u.id)
+                      ? "button followed"
+                      : "button light"
+                  }
+                  onClick={() => store.toggle("follows", u.id)}
+                >
+                  {store.follows.includes(u.id) ? "Following" : "Follow"}
+                </button>
+              </div>
+              <div className="people-person-metrics">
+                {(role === "Creator"
+                  ? [
+                      [String(u.launches), "Launches"],
+                      [
+                        Math.round((u.graduated / u.launches) * 100) + "%",
+                        "Graduated",
+                      ],
+                      [money(u.fees), "Demo fees"],
+                    ]
+                  : role === "Caller"
+                    ? [
+                        [String(userCalls(u).length), "Original calls"],
+                        [Math.round(success(u)) + "%", "Reached 2×"],
+                        [
+                          String(
+                            userCalls(u).filter((c) => c.outcome < 1).length,
+                          ),
+                          "Failed calls",
+                        ],
+                      ]
+                    : [
+                        [money(u.pnl), "Realised PnL"],
+                        [u.winRate + "%", "Win rate"],
+                        [consistency(u) + "/100", "Consistency"],
+                      ]
+                ).map(([value, label]) => (
+                  <span key={label}>
+                    <b>{value}</b>
+                    <small>{label}</small>
+                  </span>
+                ))}
+              </div>
+              <Link to={`/profile/${u.id}`}>
+                View full history <ArrowUpRight size={14} />
+              </Link>
+            </article>
+          ))}
         </div>
         <div className="table-scroll">
           <table>

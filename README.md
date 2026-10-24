@@ -1,6 +1,6 @@
 # Aladdin Social
 
-A people-first crypto reputation network: discover a person, inspect their history, follow their next activity, and explore opportunities to work with them. All financial data, identities, wallet attestations, launch events, and entitlements are fictional demonstrations.
+A wallet-first mobile application prototype with creator, caller and trader reputation integrated into discovery and token research. Opens directly to demo balances and holdings. The hierarchy is **Wallet → Assets → Trading → Discovery → Reputation → Opportunities**. Financial data, wallet actions, identity attestations and events remain simulations; no real money, custody or trading is enabled.
 
 ## Run locally
 
@@ -26,24 +26,41 @@ Open http://localhost:3001. A hosting platform may set `PORT`; bind address is `
 
 ## Product experiences
 
-- **Discover:** people-led feed, role/chain filters, chain-aware user/token/contract search, trending tokens, creator discovery, historical milestones and contextual token intelligence.
-- **Independent leaderboards:** creators rank by graduation, buyer reach or sustained demo outcomes; traders by realised PnL, win rate or consistency; callers by original-call outcomes, separate demo buy evidence or trading performance. Accounts may hold multiple roles. X-linked fictional accounts qualify for social visibility; a wallet-only demo session is available under the account avatar.
-- **Profiles:** creator launch outcomes, fees and relationship caveats; trader realised/unrealised PnL and trade records; caller immutable baselines and successful/failed historical calls. Detailed launch rows are representative seed records rather than the complete all-time aggregate.
-- **Hire:** public creator statistics and identities, optional availability filter, creator profile research, a brief and simulated feature-authorised introduction request. No payment, message, or private contact delivery. Not every creator is in the opted-in set.
-- **Intelligence:** profile Intelligence tab or account page provides gated relationship evidence and JSON exports. Different API permissions govern introductions, identity enrichment, relationships and exports. Public reputation is always readable.
-- **Launch:** scheduled creator announcements, reminder opt-in, manual reminder simulation and manually confirmed demo launches. No token creation, minting or distribution. Reminders require following plus the relevant category preference.
-- **Terminal:** chain-aware token research and unified simulated balance. Trade control explains that execution is disabled.
-- **Publishing:** thesis or callout, chain-specific address validation, available token snapshot, optional local image/chart/narrative, browser-local persistence, comments, likes, follows, watchlists and bookmarks. New posts preserve original timestamp, price and market-cap baseline. No baseline editor exists.
-- **Share to X:** opens X's web intent containing text, ticker, CA and post URL. Publication is performed and confirmed by the user on X, never claimed by Aladdin. New demo posts only exist in their originating browser; their links cannot resolve on another device until a shared post backend exists.
-- **Notifications:** category preferences per followed user, unread state, event simulator, and navigation to related token. Initial fictional notification is provided. No push, email, background scheduler or live RPC listener.
-- **Supporting discovery:** narratives, custom token lists, saved posts, portfolio preview and clearly fictional reward campaigns.
+The same information architecture is used on mobile, tablet and desktop. There is no landing page and no sidebar-led terminal as the opening experience.
+
+| Primary tab              | Experience                                                                                                                                                          |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Home** `/`             | $2,485.60 initial demo balance, readable holdings, balance privacy, Receive / Send / Swap / Add funds, wallet activity. No portfolio chart or promotional cards.    |
+| **Discover** `/discover` | Token, contract, chain and person search; trending/new launches; filtered activity from followed accounts; launch announcements.                                    |
+| **People** `/people`     | Independent Creator / Caller / Trader leaderboards with distinct existing metrics, native mobile rows, complete profile context, follow controls and hiring access. |
+| **Alerts** `/alerts`     | Existing category preferences, unread state and creator/trader/caller/milestone events. Demo event tools are secondary and collapsed.                               |
+| **Profile** `/profile`   | Identity, wallet summary, reputation, activity, saved posts/lists, notifications, subscriptions explanation, wallet privacy and reset, account-mode/API tools.      |
+
+### Wallet and trading flows
+
+- `/assets` lists/searches all held demo assets; `/asset/:id` opens wallet asset details; `/token/:id` opens the same research/trading interface from Discover.
+- Token detail includes fractional price precision, one contextual simulated chart, holdings, Buy/Sell, wallet transaction history, token information, attributable creator context and original caller records.
+- **Receive** renders a QR containing an `aladdin-demo://` URI, not a real cryptocurrency payment address. It cannot receive funds.
+- **Send** validates the selected chain's recipient address and available quantity, then requires an explicit simulation review before updating local holdings.
+- **Swap / Buy / Sell** show fixed fictional quote information, a disclosed 0.5% illustrative spread and a review step. Confirmation atomically updates the local demo ledger. Repeated operation IDs, invalid quantities and overspending are rejected. Cross-chain settlement/bridging is not implemented; assets without supported funding show an explicit explanation.
+- **Add funds** adds simulated Solana USDC after review, with no payment or financial details collected. Funds never leave or enter a real wallet.
+- Wallet state is versioned browser-local Zustand storage, separate from the existing social state. Resetting the wallet preserves social posts/follows/preferences.
+
+### Preserved connected experiences
+
+Creator/caller/trader profiles, launch history, attributable fees and relationship caveats; successful and failed original call records; immutable post baselines; follows, comments, bookmarks and lists; local thesis/callout publishing; X web-intent sharing with user confirmation; consent-based simulated introductions; API-gated relationship evidence and exports; scheduled announcements and manual reminder/launch simulation. X OAuth, signed-wallet proof, payments, live market data and actual notifications are not connected.
+
+Posts and wallet activity are local to their originating browser and do not sync between phone and desktop. Web-intent post links require shared storage before a locally created post can resolve on another device. Rewards and subscription views do not promise real allocations or early trading advantages.
 
 ## Architecture
 
 - `src/models.ts`: identities (immutable internal and separate X IDs), wallets, chain-aware tokens, launches, fees, trades, positions, calls, theses, follows, notifications, milestones and reputation types.
 - `src/data.ts`: public fictional seeds and address/token-identity helpers. EVM addresses normalise case; Solana addresses preserve case and must decode to 32 bytes.
 - `src/store.ts`: versioned browser-local Zustand state for social interactions and simulated notification delivery.
-- `src/main.tsx`: router, layout, reusable UI primitives, feed, profiles, token context, composer and notifications.
+- `src/main.tsx`: five-tab application shell, existing social primitives, profiles, composer and alerts.
+- `src/Wallet.tsx`: wallet home, holdings, activity, reviewed wallet actions, token research/trading, Discover, People and personal Profile.
+- `src/wallet-store.ts`: typed wallet assets, balances, activity, operation validation and local persistence.
+- `src/wallet.css`: mobile design tokens and shared screen styles; `src/ui/Modal.tsx`: shared accessible bottom sheet/dialog.
 - `src/Leaderboards.tsx`: distinct role-specific rankings, columns, metrics, and period-filtered activity.
 - `src/Experiences.tsx`: opportunities, advanced intelligence, announcements, terminal and demo participation modes.
 - `src/Spark.tsx`: lazy-loaded Recharts visualisation; chart code is separate from the initial app bundle.
@@ -84,7 +101,7 @@ npm test
 
 Start API and Vite before `npm test`. Playwright uses `/usr/bin/chromium` in this workspace; override `PLAYWRIGHT_CHROMIUM_EXECUTABLE` or install Playwright Chromium elsewhere. Tests exercise discovery → profile → follow → alerts → simulated launch, publishing and baseline persistence, comments/bookmarks, Share to X intent construction (intercepted fixture, no real X publication), trader/caller records including failures, chain filters, API 401/403/200 boundaries, simulated introductions, launch announcements and responsive routes.
 
-Screenshots are generated in `artifacts/` at desktop 1536×1024, tablet 834×1024, and phone 390×1024 viewports. A 1536×1024 viewport crop is also included. Visual direction follows the reference's restrained dark information density with an independent warm-gold Aladdin identity, per the later instruction to use it as inspiration rather than copy it. No pixel-equivalence claim.
+The current mobile audit, design system and before/after screenshots are documented in [`artifacts/MOBILE-REVIEW.md`](artifacts/MOBILE-REVIEW.md). Home was verified before connecting subsequent screens at 375×812, 390×844 and 393×852, plus the shorter 390×664 and 393×660 iPhone browser viewport profiles. Desktop/tablet route checks are retained. Tests run in Chromium; this is not a claim of on-device Safari verification.
 
 ## Deploy a new Aladdin Social project on Vercel
 
@@ -93,7 +110,7 @@ Use a new project named `aladdin-social`; do not reuse `aladdin-ui` (linked to a
 1. Import `olamilekanalaga/Aladdin-Social` in Vercel under your intended team.
 2. Keep framework **Vite**, build command `npm run build`, output `dist`, and Node.js **24.x**. The tracked configuration also deploys the Express API as a Node function.
 3. Configure `ALADDIN_SOCIAL_DEMO_SESSION_SECRET` as a server-only secret for the deployment environment. Use a cryptographically random value of at least 32 bytes, generated privately; never use a `VITE_` prefix or commit it. Production and preview should use separate values. The API fails closed on Vercel if this variable is absent.
-4. Deploy, then verify `/`, `/creators`, `/hire`, `/launch`, `/account`, post sharing, and authenticated API requests on the resulting URL. A 401 from `GET /api/session` before creating a session is expected; a SPA HTML response on that API URL is a routing error.
+4. Deploy, then verify `/`, `/discover`, `/people`, `/alerts`, `/profile`, `/asset/t1`, wallet review flows, post sharing, and authenticated API requests on the resulting URL. A 401 from `GET /api/session` before creating a session is expected; a SPA HTML response on that API URL is a routing error.
 
 The backend uses the shared key to validate signed demo sessions across serverless instances. This is not real account verification or paid access. Social posts, follows and announcements are still browser-local and do not sync between phone and computer. A database and real authentication remain future work.
 

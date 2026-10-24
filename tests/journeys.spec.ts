@@ -11,7 +11,8 @@ test("creator discovery, follow, alerts and simulated launch notification", asyn
     .click();
   await expect(page.getByRole("dialog")).toBeVisible();
   await page.getByRole("button", { name: "Save preferences" }).click();
-  await page.goto("/notifications");
+  await page.goto("/alerts");
+  await page.getByText("Demo event tools", { exact: true }).click();
   await page.getByRole("button", { name: "Trigger simulated event" }).click();
   await expect(page.getByRole("status")).toHaveText(
     "Simulated notification delivered.",
@@ -22,7 +23,7 @@ test("creator discovery, follow, alerts and simulated launch notification", asyn
 test("publish, immutable post baseline, comment, bookmark, persistence and X intent", async ({
   page,
 }) => {
-  await page.goto("/");
+  await page.goto("/discover");
   await page.getByRole("button", { name: "Create", exact: true }).click();
   await page
     .getByLabel("Your thesis")
@@ -64,12 +65,15 @@ test("publish, immutable post baseline, comment, bookmark, persistence and X int
   await expect(page.locator(".comments")).toContainText("What are the risks?");
 });
 test("token discovery and distinct role records", async ({ page }) => {
-  await page.goto("/tokens");
+  await page.goto("/discover");
   await page
     .getByRole("combobox", { name: "Token chain" })
     .selectOption("Base");
-  await expect(page.locator("tbody tr")).toHaveCount(2);
-  await page.getByRole("link", { name: /MOONCAT Mooncat/ }).click();
+  await expect(page.locator(".discover-token-row")).toHaveCount(2);
+  await page
+    .locator(".discover-token-row")
+    .filter({ hasText: "MOONCAT" })
+    .click();
   await page.getByRole("link", { name: "marcellus" }).first().click();
   await page.getByRole("tab", { name: "Launch history" }).click();
   await expect(page.locator(".profile-content")).toContainText(
@@ -182,6 +186,13 @@ test("all routes render and responsive viewports have no horizontal overflow", a
     await page.setViewportSize({ width, height: 1024 });
     for (const route of [
       "/",
+      "/discover",
+      "/people",
+      "/alerts",
+      "/profile",
+      "/asset/sol",
+      "/assets",
+      "/activity",
       "/creators",
       "/traders",
       "/callers",
@@ -207,11 +218,9 @@ test("all routes render and responsive viewports have no horizontal overflow", a
       ).toBeTruthy();
     }
     await page.goto("/");
-    await expect(page.locator(".post .recharts-surface").first()).toBeVisible();
-    if (width === 1536)
-      await expect(
-        page.locator(".detail-column .recharts-surface").first(),
-      ).toBeVisible();
+    await page.locator(".wallet-screen").evaluate(async (el) => {
+      await Promise.all(el.getAnimations().map((a) => a.finished));
+    });
     await page.screenshot({
       path: `artifacts/home-${width}.png`,
       fullPage: true,

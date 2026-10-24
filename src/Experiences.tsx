@@ -1,3 +1,4 @@
+import { useWallet, walletTotal, formatUSD } from "./wallet-store";
 import { londonLocalToISO } from "./time";
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
@@ -649,6 +650,7 @@ export function LaunchExperience() {
   );
 }
 export function Terminal() {
+  const balances = useWallet((s) => s.balances);
   const [chain, setChain] = useState("All chains");
   return (
     <>
@@ -680,7 +682,8 @@ export function Terminal() {
           ))}
         </select>
         <Link className="button" to="/portfolio">
-          <Wallet size={14} /> Unified demo balance: $1,240.32
+          <Wallet size={14} /> Unified demo balance:{" "}
+          {formatUSD(walletTotal(balances))}
         </Link>
       </div>
       <div className="narrative-grid">
