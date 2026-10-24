@@ -1,0 +1,58 @@
+{
+  "name": "aladdin-social",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "dev": "vite --host 0.0.0.0",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview --host 0.0.0.0",
+    "typecheck": "tsc --noEmit",
+    "test": "playwright test",
+    "api": "node server/index.mjs",
+    "start": "node server/index.mjs",
+    "lint": "eslint .",
+    "format": "prettier --write src server tests *.ts *.json *.js README.md"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/olamilekanalaga/Aladdin-Social.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "bugs": {
+    "url": "https://github.com/olamilekanalaga/Aladdin-Social/issues"
+  },
+  "homepage": "https://github.com/olamilekanalaga/Aladdin-Social#readme",
+  "dependencies": {
+    "@tanstack/react-query": "^5.104.5",
+    "express": "^5.3.0",
+    "lucide-react": "^1.61.0",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
+    "react-router-dom": "^7.18.4",
+    "recharts": "^3.10.1",
+    "zustand": "^5.0.16"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "^4.14.0",
+    "@eslint/js": "^9.39.5",
+    "@playwright/test": "^1.64.1",
+    "@tailwindcss/vite": "^4.3.3",
+    "@types/node": "^26.6.5",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^6.1.2",
+    "eslint": "^9.39.5",
+    "eslint-plugin-jsx-a11y": "^6.10.2",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "globals": "^17.13.0",
+    "prettier": "^3.9.10",
+    "tailwindcss": "^4.3.3",
+    "typescript": "~6.0.0",
+    "typescript-eslint": "^8.72.0",
+    "vite": "^8.3.5"
+  }
+}
