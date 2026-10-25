@@ -57,5 +57,7 @@ test("wallet-only participation publishes without an X identity", async ({
   await page.getByRole("button", { name: "View post" }).click();
   await expect(page.locator(".post")).toContainText("Wallet 8a2…f91");
   await page.goto("/traders");
-  await expect(page.locator("tbody")).not.toContainText("Wallet 8a2…f91");
+  await expect(page.locator(".compact-board")).not.toContainText(
+    "Wallet 8a2…f91",
+  );
 });

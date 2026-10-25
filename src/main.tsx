@@ -1,8 +1,3 @@
-import {
-  creatorAchievements,
-  purchaseEvidence,
-  tradingEvidence,
-} from "./reputation";
 import { CreateHub } from "./mvp/Hub";
 import { CallEvidence } from "./mvp/Calls";
 import { restoreLaunchedTokens } from "./mvp/state";
@@ -77,8 +72,6 @@ import {
   onboardingDemoUser,
   personById,
   resolvePost,
-  wallets,
-  walletRelationships,
 } from "./data";
 import { useStore } from "./store";
 import { walletAssets } from "./wallet-store";
@@ -505,6 +498,10 @@ function App() {
             />
             <Route path="/profile/wallets" element={<WalletManagementPage />} />
             <Route path="/profile/identity" element={<IdentityManagement />} />
+            <Route
+              path="/profile/:id/intelligence"
+              element={<CreatorIntelligence />}
+            />
             <Route path="/profile/:id" element={<Profile />} />
             <Route path="/tokens" element={<TokenDirectory />} />
             <Route path="/token/:id" element={<AssetDetail />} />
@@ -1184,337 +1181,141 @@ function PageTitle({ title, subtitle }: { title: string; subtitle: string }) {
     </div>
   );
 }
+function CreatorIntelligence() {
+  const { id } = useParams();
+  return <IntelligenceAccess userId={id} />;
+}
 function Profile() {
   const { id } = useParams();
   const u = personById(id);
-  const [tab, setTab] = useState("Overview");
-  const [contactStatus, setContactStatus] = useState("");
+  const [tab, setTab] = useState("Created");
   const [alerts, setAlerts] = useState(false);
-  const s = useStore();
   if (!u) return <Empty />;
+  const caller = u.roles.includes("Caller") && !u.roles.includes("Creator");
+  const selected = caller && tab === "Created" ? "Calls" : tab;
   const history = launches.filter((l) => l.userId === id);
   return (
-    <>
-      <div className="profile-cover">
-        <span>THE PERSON BEHIND THE PERSPECTIVE</span>
-        <span className="profile-art">✦</span>
-      </div>
-      <section className="panel profile-header">
-        <Avatar user={u} size={78} />
+    <div className="simple-person-profile">
+      <section className="simple-person-header">
+        <Avatar user={u} size={56} />
         <div>
-          <h1>
-            {u.name} <ShieldCheck size={20} className="blue" />
-          </h1>
+          <h1>{u.name}</h1>
           <p>
             {u.participation === "wallet-only"
               ? "Wallet-only account"
-              : `@${u.social.username}`}{" "}
-            · {u.followers.toLocaleString()} followers
+              : `@${u.social.username}`}
           </p>
-          <div className="tags">
-            {u.roles.map((r) => (
-              <Badge key={r}>{r}</Badge>
-            ))}
-            <Badge>
-              {u.participation === "wallet-only"
-                ? "Wallet-only demo · unverified"
-                : "Demo verified wallet"}
-            </Badge>
-          </div>
         </div>
-        <div className="profile-actions">
-          <Follow user={u} />
-          <button
-            className="button"
-            aria-label="Configure profile notifications"
-            onClick={() => setAlerts(true)}
-          >
-            <Bell size={15} /> Alerts
-          </button>
-        </div>
-        <p className="bio">{u.bio}</p>
+        <Follow user={u} />
         {u.roles.includes("Creator") && (
-          <Link className="wallet-secondary" to={`/hire?creator=${u.id}`}>
-            Request hiring contact <ArrowUpRight size={16} />
+          <Link
+            className="icon-button"
+            aria-label="Advanced intelligence"
+            to={`/profile/${u.id}/intelligence`}
+          >
+            <ShieldCheck size={20} />
           </Link>
         )}
+        <button
+          className="icon-button"
+          aria-label="Configure profile notifications"
+          onClick={() => setAlerts(true)}
+        >
+          <Bell size={20} />
+        </button>
       </section>
-      <div className="stats-grid">
-        {[
-          ["Total launches", u.launches],
-          [
-            "Graduation rate",
-            `${Math.round((u.graduated / Math.max(1, u.launches)) * 100)}%`,
-          ],
-          ["Realised PnL", money(u.pnl)],
-          ["Creator fees", money(u.fees)],
-        ].map(([label, v]) => (
-          <div key={label} className="panel stat">
-            <small>{label}</small>
-            <h2>{v}</h2>
-            <span>Simulated historical record</span>
-          </div>
-        ))}
-      </div>
+      {u.roles.includes("Creator") && (
+        <Link className="profile-hire-link" to={`/hire?creator=${u.id}`}>
+          Request hiring contact <ArrowUpRight size={15} />
+        </Link>
+      )}
       <Tabs
-        items={[
-          "Overview",
-          "Launch history",
-          "Trade history",
-          "Call history",
-          "Posts",
-          "Wallets",
-          "Intelligence",
-        ]}
-        value={tab}
+        items={caller ? ["Calls", "Traded"] : ["Created", "Traded"]}
+        value={selected}
         onChange={setTab}
       />
       <div className="profile-content">
-        {u.roles.includes("Creator") &&
-          ["Overview", "Launch history"].includes(tab) && (
-            <section className="panel padded creator-direct-history">
-              <h2>
-                Creator achievements <Badge>Demo data</Badge>
-              </h2>
-              <div className="direct-achievements">
-                <span>
-                  <b>{creatorAchievements(u).above100k}</b>
-                  <small>Reached $100K</small>
-                </span>
-                <span>
-                  <b>{creatorAchievements(u).above500k}</b>
-                  <small>Reached $500K</small>
-                </span>
-                <span>
-                  <b>{creatorAchievements(u).above1m}</b>
-                  <small>Reached $1M+</small>
-                </span>
-              </div>
-              <p className="muted">
-                Highest observed cap: {money(creatorAchievements(u).highest)} ·{" "}
-                {creatorAchievements(u).walletCount} demo-attested creator
-                wallets. These are direct historical achievements, not a trust
-                score.
-              </p>
-              <div className="creator-public-contact">
-                <small>Public demonstration contact · non-deliverable</small>
-                <code>creator+{u.social.username}@example.invalid</code>
-                <button
-                  className="button"
-                  onClick={async () => {
-                    try {
-                      await navigator.clipboard.writeText(
-                        `creator+${u.social.username}@example.invalid`,
-                      );
-                      setContactStatus("Demo contact copied");
-                    } catch {
-                      setContactStatus("Select the displayed address to copy");
-                    }
-                  }}
-                >
-                  Copy demo public contact
-                </button>
-                <p role="status" className="onboarding-caption">
-                  {contactStatus}
-                </p>
-              </div>
-            </section>
-          )}
-        {["Overview", "Launch history"].includes(tab) && (
-          <section className="panel padded">
-            <h2>Launch history · sample records</h2>
-            <p className="muted">
-              Successful and unsuccessful outcomes are shown together. These
-              rows are a representative sample of the simulated all-time totals.
-            </p>
+        {selected === "Created" && (
+          <section aria-label="Created tokens">
+            <h2>Created tokens</h2>
             {history.map((l) => {
               const t = tokens.find((t) => t.id === l.tokenId)!;
               return (
                 <Link className="history-row" key={l.id} to={`/token/${t.id}`}>
                   <TokenIcon token={t} />
                   <span>
-                    <b>{t.ticker}</b>
-                    <small>
-                      {new Date(l.timestamp).toLocaleDateString("en-GB")}
-                    </small>
+                    <b>{t.name}</b>
+                    <small>{t.ticker}</small>
                   </span>
-                  <Badge>{l.outcome}</Badge>
-                  <span className={t.change > 0 ? "positive" : "negative"}>
-                    {t.change}%
-                  </span>
-                  <ChevronRight size={15} />
+                  <span>{l.outcome}</span>
+                  <ChevronRight size={16} />
                 </Link>
               );
             })}
-            {!history.length && (
-              <p className="empty">
-                No attributed launches. Creator and trader identities are
-                separate relationships.
-              </p>
-            )}
-            <div className="evidence-note">
-              <ShieldCheck size={16} />
-              <p>
-                Wallet links are verified only within the fictional dataset.
-                Deployer, promoter and fee-recipient relationships are not
-                inferred. High returns do not establish trustworthiness.
-              </p>
-            </div>
+            {!history.length && <p className="empty">No created tokens</p>}
           </section>
         )}
-        {["Overview", "Trade history"].includes(tab) && (
-          <section className="panel padded">
-            <h2>
-              Trading history <Badge>Simulated</Badge>
-            </h2>
-            <div className="mini-stats">
-              <span>
-                Win rate <b>{u.winRate}%</b>
-              </span>
-              <span>
-                Unrealised PnL <b className="positive">{money(u.pnl * 0.12)}</b>
-              </span>
-              <span>
-                Total demo trades{" "}
-                <b>{trades.filter((t) => t.userId === id).length}</b>
-              </span>
-              <span>
-                Trading volume <b>{money(tradingEvidence(u).volume)}</b>
-              </span>
-              <span>
-                Closed positions <b>{tradingEvidence(u).closedPositions}</b>
-              </span>
-            </div>
+        {selected === "Traded" && (
+          <section aria-label="Trades">
+            <h2>Trades</h2>
             {trades
-              .filter((x) => x.userId === id)
-              .map((x) => (
-                <Link
-                  className="history-row"
-                  key={x.id}
-                  to={`/token/${x.tokenId}`}
-                >
-                  <TokenIcon token={tokens.find((t) => t.id === x.tokenId)!} />
-                  <b>{tokens.find((t) => t.id === x.tokenId)?.ticker}</b>
-                  <span className={x.side === "Buy" ? "positive" : "negative"}>
-                    {x.side}
-                  </span>
-                  <b>{money(x.amount)}</b>
-                  <small>{x.timestamp.slice(11, 16)}</small>
-                </Link>
-              ))}
+              .filter((t) => t.userId === id)
+              .map((t) => {
+                const token = tokens.find((v) => v.id === t.tokenId)!;
+                return (
+                  <Link
+                    className="history-row"
+                    key={t.id}
+                    to={`/token/${token.id}`}
+                  >
+                    <TokenIcon token={token} />
+                    <span>
+                      <b>{token.name}</b>
+                      <small>
+                        {new Date(t.timestamp).toLocaleDateString()}
+                      </small>
+                    </span>
+                    <span
+                      className={t.side === "Buy" ? "positive" : "negative"}
+                    >
+                      {t.side}
+                    </span>
+                    <b>{money(t.amount)}</b>
+                  </Link>
+                );
+              })}
+            {!trades.some((t) => t.userId === id) && (
+              <p className="empty">No trades</p>
+            )}
           </section>
         )}
-        {["Overview", "Call history"].includes(tab) && (
-          <section className="panel padded">
-            <h2>Original calls & outcomes</h2>
-            <p className="muted">
-              Immutable baselines · average time to demo milestone: 6h 18m
-            </p>
+        {selected === "Calls" && (
+          <section>
+            <h2>Calls</h2>
             {calls
               .filter((c) => c.userId === id)
               .map((c) => (
-                <div key={c.id} className="call-record">
-                  <div className="row-between">
-                    <Link to={`/token/${c.tokenId}`}>
-                      <b>{tokens.find((t) => t.id === c.tokenId)?.ticker}</b>
-                    </Link>
-                    <span className={c.outcome >= 1 ? "positive" : "negative"}>
-                      {c.outcome.toFixed(1)}× ·{" "}
-                      {c.outcome >= 1 ? "Successful" : "Failed"}
-                    </span>
-                  </div>
-                  <p>{c.text}</p>
-                  <Link className="history-link" to={`/post/${c.id}`}>
-                    Open original call & buy <ArrowUpRight size={14} />
-                  </Link>
-                  <small
-                    className={
-                      purchaseEvidence(c).length ? "positive" : "muted"
-                    }
-                  >
-                    {purchaseEvidence(c).length
-                      ? "Demo qualified call · same-token buy from an attested wallet"
-                      : "Recorded call only · no qualifying purchase evidence"}
-                  </small>
-                  <small>
-                    Original: {new Date(c.timestamp).toLocaleString("en-GB")} ·
-                    Baseline {money(c.baselineCap)} · {c.revisions.length}{" "}
-                    revisions
-                  </small>
-                </div>
+                <Link
+                  className="history-row call-record"
+                  key={c.id}
+                  to={`/post/${c.id}`}
+                >
+                  <TokenIcon token={tokens.find((t) => t.id === c.tokenId)!} />
+                  <span>
+                    <b>{tokens.find((t) => t.id === c.tokenId)?.ticker}</b>
+                    <small>{new Date(c.timestamp).toLocaleDateString()}</small>
+                  </span>
+                  <span className={c.outcome >= 1 ? "positive" : "negative"}>
+                    {c.outcome.toFixed(1)}× ·{" "}
+                    {c.outcome >= 1 ? "Successful" : "Failed"}
+                  </span>
+                </Link>
               ))}
-            {s.posts
-              .filter(
-                (p) => p.userId === id && p.type === "Callout" && p.baseline,
-              )
-              .map((p) => (
-                <div key={p.id} className="call-record">
-                  <Link to={`/post/${p.id}`}>
-                    <b>{tokens.find((t) => t.id === p.tokenId)?.ticker}</b>
-                  </Link>
-                  <p>{p.text}</p>
-                  <small>
-                    Original: {p.timestamp} · Baseline{" "}
-                    {money(p.baseline!.marketCap)} · Outcome pending
-                  </small>
-                </div>
-              ))}
-            {!calls.some((c) => c.userId === id) &&
-              !s.posts.some(
-                (p) => p.userId === id && p.type === "Callout" && p.baseline,
-              ) && (
-                <p className="empty">
-                  No timestamped callouts for this account.
-                </p>
-              )}
-          </section>
-        )}
-        {tab === "Posts" &&
-          s.posts
-            .filter((p) => p.userId === id)
-            .map((p) => <PostCard key={p.id} post={p} />)}
-        {tab === "Intelligence" && <IntelligenceAccess userId={u.id} />}
-        {tab === "Wallets" && (
-          <section className="panel padded">
-            <h2>Connected wallet relationships</h2>
-            <p className="muted">
-              {u.participation === "wallet-only"
-                ? "No X identity linked. Wallet signatures are not connected in this demonstration."
-                : `Fictional social identity: ${u.social.externalId}`}
-            </p>
-            {walletRelationships
-              .filter((r) => r.userId === u.id)
-              .map((r) => {
-                const wallet = wallets.find((w) => w.id === r.walletId)!;
-                return (
-                  <div className="call-record" key={r.walletId}>
-                    <Badge>{wallet.chain}</Badge>
-                    <p>
-                      <code>{wallet.address}</code>
-                    </p>
-                    <Badge>
-                      {r.role} · demo {r.status}
-                    </Badge>
-                    <p className="micro">
-                      Fictional seed attestation. No live signature
-                      verification. This relationship does not establish
-                      deployer, promoter or fee-recipient ownership.
-                    </p>
-                  </div>
-                );
-              })}
-            {!walletRelationships.some((r) => r.userId === u.id) && (
-              <p className="empty">No attributed wallet record available.</p>
-            )}
-            <p className="muted">
-              Attributable creator fees: {money(u.fees)} simulated aggregate.
-              Detailed fee provenance requires a live integration.
-            </p>
           </section>
         )}
       </div>
       {alerts && <AlertSettings user={u} close={() => setAlerts(false)} />}
-    </>
+    </div>
   );
 }
 function AlertSettings({ user, close }: { user: User; close: () => void }) {

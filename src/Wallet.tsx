@@ -38,7 +38,6 @@ import { useStore } from "./store";
 import Modal from "./ui/Modal";
 import { useOnboarding } from "./onboarding/store";
 import { WalletManager, ResetOnboarding } from "./onboarding/Onboarding";
-import { DiscoveryPreview } from "./onboarding/History";
 import Directory from "./Leaderboards";
 import {
   useWallet,
@@ -168,7 +167,6 @@ export function WalletHome() {
                 ["Receive", ArrowDownLeft],
                 ["Send", ArrowUpRight],
                 ["Swap", ArrowDownUp],
-                ["Add funds", Plus],
               ] as const
             ).map(([label, Icon]) => (
               <button key={label} onClick={() => setAction(label)}>
@@ -180,9 +178,6 @@ export function WalletHome() {
             ))}
           </div>
           <div className="wallet-extra-actions">
-            <button onClick={() => setAction("Add funds")}>
-              Buy crypto <Plus size={15} />
-            </button>
             <Link to="/create/token">
               Create token <ChevronRight size={15} />
             </Link>
@@ -262,7 +257,13 @@ export function WalletHome() {
           <WalletManager close={() => setManage(false)} />
         </Modal>
       )}
-      {action && <WalletAction action={action} close={() => setAction(null)} />}
+      {action && (
+        <WalletAction
+          action={action}
+          onFund={() => setAction("Add funds")}
+          close={() => setAction(null)}
+        />
+      )}
     </div>
   );
 }
@@ -358,11 +359,13 @@ export function WalletAction({
   action,
   initialAssetId,
   attribution,
+  onFund,
   close,
 }: {
   action: "Receive" | "Send" | "Swap" | "Add funds" | "Buy" | "Sell";
   initialAssetId?: string;
   attribution?: { postId: string; callerId: string };
+  onFund?: () => void;
   close: () => void;
 }) {
   const s = useWallet();
@@ -522,6 +525,14 @@ export function WalletAction({
             {copied ? "Demo URI copied" : "Copy demo URI"}
           </button>
           <code>{demoURI}</code>
+          {onFund && (
+            <details className="demo-funding">
+              <summary>Demo funding</summary>
+              <button className="wallet-secondary" onClick={onFund}>
+                Add demo funds
+              </button>
+            </details>
+          )}
           {error && <p role="alert">{error}</p>}
         </div>
       ) : step === "done" ? (
@@ -1375,7 +1386,6 @@ export function People({ initial }: { initial?: Role }) {
           </button>
         ))}
       </div>
-      {role === "Trader" && <DiscoveryPreview role={role} />}
       <Directory key={role} category={role} embedded />
     </div>
   );

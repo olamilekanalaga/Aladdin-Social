@@ -56,7 +56,11 @@ test("wallet privacy, receive preview and local funding behave honestly", async 
   await expect(page.getByRole("dialog")).toContainText("not a payment address");
   await page.screenshot({ path: "artifacts/wallet-receive-393.png" });
   await page.getByRole("button", { name: "Close dialog" }).click();
-  await page.getByRole("button", { name: "Add funds", exact: true }).click();
+  await page.getByRole("button", { name: "Receive", exact: true }).click();
+  await page.getByText("Demo funding", { exact: true }).click();
+  await page
+    .getByRole("button", { name: "Add demo funds", exact: true })
+    .click();
   await page.getByRole("button", { name: "$100", exact: true }).click();
   await page.getByRole("button", { name: "Review add funds" }).click();
   await expect(page.getByRole("dialog")).toContainText("NO REAL FUNDS");

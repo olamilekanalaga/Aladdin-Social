@@ -7,6 +7,9 @@ A wallet-first mobile application prototype with creator, caller and trader repu
 
 Latest UI update: compact Creator rows show Created/Migrated; Caller rows show published-token count, best observed call multiple and a sale multiple only when evidence exists (currently unavailable in the seed dataset). The leaderboard contains no explanatory summaries. Home has no Bridge button. Receive previews offer Solana, Base, TON and Robinhood Chain; these are not live deposit addresses. Brighter charcoal surfaces, short entry/tap motion and reduced-motion support are enabled. Automatic bridging/neutral-asset settlement remains a future API integration.
 
+
+Profile cleanup: public creator profiles now contain **Created | Traded** token histories, with the placeholder contact/achievement panels removed. Caller profiles retain their original Calls records. Trader leaderboards use the compact rows with **24h / 7D / 30D** controls; PnL and win rate are calculated from explicit fictional closed-trade outcomes within each period. The old aggregate activity dump is removed. Home contains Receive, Send and Swap; simulated funding is tucked under Receive → Demo funding instead of duplicate Add funds / Buy crypto buttons.
+
 ## Run locally
 
 Node.js 22.12+ (tested with Node 24), npm, and two terminals:

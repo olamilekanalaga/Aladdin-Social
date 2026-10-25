@@ -608,3 +608,135 @@
     transform: none;
   }
 }
+.wallet-actions {
+  grid-template-columns: repeat(3, 1fr);
+}
+.compact-board-labels.trader,
+.compact-person.trader {
+  grid-template-columns: minmax(0, 1fr) 76px 65px;
+}
+.trader-periods {
+  display: flex;
+  gap: 8px;
+  margin: 0 0 20px;
+}
+.trader-periods button {
+  min-height: 44px;
+  flex: 1;
+  border: 1px solid var(--wallet-line);
+  border-radius: 10px;
+  color: var(--wallet-muted);
+}
+.trader-periods button[aria-pressed="true"] {
+  color: var(--signal-blue);
+  border-color: var(--signal-blue);
+  background: #49bfff12;
+}
+.simple-person-profile {
+  max-width: 680px;
+  margin: auto;
+}
+.simple-person-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 0 20px;
+}
+.simple-person-header > div {
+  flex: 1;
+  min-width: 0;
+}
+.simple-person-header h1 {
+  font-size: 22px;
+  letter-spacing: -0.5px;
+}
+.simple-person-header p {
+  color: var(--wallet-muted);
+  font-size: 12px;
+  margin-top: 3px;
+}
+.simple-person-profile .profile-content {
+  display: block;
+  margin-top: 20px;
+}
+.simple-person-profile h2 {
+  font-size: 16px;
+  margin-bottom: 12px;
+}
+.simple-person-profile .history-row {
+  padding: 16px 0;
+  min-height: 74px;
+  gap: 12px;
+}
+.simple-person-profile .history-row > span:nth-child(2) {
+  flex: 1;
+  min-width: 0;
+}
+.simple-person-profile .history-row small {
+  display: block;
+  font-size: 11px;
+}
+.simple-person-profile .history-row b {
+  font-size: 14px;
+}
+.profile-hire-link {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  margin-bottom: 14px;
+  color: var(--signal-blue);
+}
+.demo-funding {
+  text-align: left;
+  border-top: 1px solid var(--wallet-line);
+  padding-top: 16px;
+  margin-top: 12px;
+}
+.demo-funding summary {
+  cursor: pointer;
+  min-height: 44px;
+  color: var(--wallet-muted);
+  font-size: 12px;
+}
+@media (max-width: 420px) {
+  .simple-person-header {
+    gap: 8px;
+  }
+  .simple-person-header > .avatar {
+    width: 44px !important;
+    height: 44px !important;
+    font-size: 25px !important;
+  }
+  .simple-person-header h1 {
+    font-size: 19px;
+  }
+}
+.simple-person-header h1,
+.simple-person-header p {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.simple-person-header .button {
+  min-height: 44px;
+}
+.simple-person-profile > .tabs {
+  display: flex;
+  gap: 0;
+  border-bottom: 1px solid var(--wallet-line);
+}
+.simple-person-profile > .tabs > button {
+  flex: 1;
+  min-height: 48px;
+  font-size: 15px;
+  border-radius: 0;
+  background: none;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  color: var(--wallet-muted);
+}
+.simple-person-profile > .tabs > button.active {
+  color: var(--signal-blue);
+  border-bottom-color: var(--signal-blue);
+}

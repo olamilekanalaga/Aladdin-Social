@@ -79,3 +79,24 @@ export function tradingEvidence(user: User) {
     walletCount: new Set(verified.map((t) => t.walletId)).size,
   };
 }
+
+export type TradingPeriod = "24h" | "7D" | "30D";
+// Fictional closed-trade outcomes, separate from market returns and all-time totals.
+const closedResults: Record<string, number[]> = {
+  u3: [420, -120, 610, 1200, 350, 800, 2200, -600, 1600],
+  u5: [230, -190, 150, -600, 720, 330, 1300, -420, 980],
+  u8: [-310, 90, -240, -500, 260, -180, 700, -910, -320],
+};
+const resultAges = [1, 4, 20, 48, 72, 120, 240, 360, 600];
+export function traderPeriodMetrics(user: User, period: TradingPeriod) {
+  const hours = period === "24h" ? 24 : period === "7D" ? 168 : 720;
+  const results = (closedResults[user.id] || []).filter(
+    (_, i) => resultAges[i] <= hours,
+  );
+  return {
+    pnl: results.reduce((sum, n) => sum + n, 0),
+    winRate: results.length
+      ? (100 * results.filter((n) => n > 0).length) / results.length
+      : 0,
+  };
+}

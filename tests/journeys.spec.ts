@@ -75,13 +75,13 @@ test("token discovery and distinct role records", async ({ page }) => {
     .filter({ hasText: "MOONCAT" })
     .click();
   await page.getByRole("link", { name: "marcellus" }).first().click();
-  await page.getByRole("tab", { name: "Launch history" }).click();
+  await page.getByRole("tab", { name: "Created" }).click();
   await expect(page.locator(".profile-content")).toContainText(
-    "Launch history · sample records",
+    "Created tokens",
   );
   await page.goto("/callers");
   await page.getByRole("link", { name: "cryptocalm" }).first().click();
-  await page.getByRole("tab", { name: "Call history" }).click();
+  await page.getByRole("tab", { name: "Calls" }).click();
   await expect(
     page.locator(".call-record").filter({ hasText: "Failed" }).first(),
   ).toBeVisible();
@@ -90,10 +90,8 @@ test("token discovery and distinct role records", async ({ page }) => {
   ).toBeVisible();
   await page.goto("/traders");
   await page.getByRole("link", { name: "etherwhale" }).first().click();
-  await page.getByRole("tab", { name: "Trade history" }).click();
-  await expect(
-    page.getByRole("heading", { name: "Trading history" }),
-  ).toBeVisible();
+  await page.getByRole("tab", { name: "Traded" }).click();
+  await expect(page.getByRole("heading", { name: "Trades" })).toBeVisible();
 });
 test("backend enforces individual features and introductions never return contact", async ({
   request,
