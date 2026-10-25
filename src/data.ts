@@ -36,6 +36,7 @@ export const users: User[] = [
   followers: 24800 - i * 1730,
   launches: r[5] as number,
   graduated: r[6] as number,
+  migrated: [22, 10, 5, 3, 6, 1, 8, 1, 5, 0][i],
   winRate: r[7] as number,
   pnl: r[8] as number,
   fees: r[9] as number,

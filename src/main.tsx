@@ -88,7 +88,11 @@ import "./style.css";
 import Modal from "./ui/Modal";
 import { useOnboarding } from "./onboarding/store";
 import { OnboardingFlow, WalletManagementPage } from "./onboarding/Onboarding";
-import { HistoricalProfile, IdentityManagement } from "./onboarding/History";
+import {
+  HistoricalProfile,
+  IdentityManagement,
+  DiscoveryPreview,
+} from "./onboarding/History";
 import {
   WalletHome,
   Discover,
@@ -481,6 +485,18 @@ function App() {
             <Route
               path="/callers"
               element={<People key="Caller" initial="Caller" />}
+            />
+            <Route
+              path="/profile/discovery"
+              element={
+                <div className="wallet-page">
+                  <Link className="back" to="/profile/identity">
+                    <ArrowLeft size={16} /> Linked identity
+                  </Link>
+                  <h1>Your discovery preview</h1>
+                  <DiscoveryPreview />
+                </div>
+              }
             />
             <Route path="/profile/history" element={<HistoricalProfile />} />
             <Route

@@ -1,4 +1,3 @@
-import { BridgeDemo } from "./mvp/Bridge";
 import { useMVP } from "./mvp/state";
 import { isTokenAvailable } from "./services";
 import React, { useState } from "react";
@@ -121,7 +120,6 @@ export function WalletHome() {
   const [action, setAction] = useState<
     "Receive" | "Send" | "Swap" | "Add funds" | null
   >(null);
-  const [bridge, setBridge] = useState(false);
   const [tab, setTab] = useState("Tokens");
   const held = walletAssets.filter(
     (a) => (s.balances[a.id] || 0) > 0.000000001,
@@ -182,9 +180,6 @@ export function WalletHome() {
             ))}
           </div>
           <div className="wallet-extra-actions">
-            <button onClick={() => setBridge(true)}>
-              Bridge <ArrowDownUp size={15} />
-            </button>
             <button onClick={() => setAction("Add funds")}>
               Buy crypto <Plus size={15} />
             </button>
@@ -262,7 +257,6 @@ export function WalletHome() {
           <ActivityList transactions={s.transactions.slice(0, 3)} />
         </aside>
       </div>
-      {bridge && <BridgeDemo close={() => setBridge(false)} />}
       {manage && (
         <Modal title="Your wallets" close={() => setManage(false)}>
           <WalletManager close={() => setManage(false)} />
@@ -394,7 +388,13 @@ export function WalletAction({
   const activeWallet = account.wallets.find(
     (w) => w.id === account.activeWalletId,
   );
-  const [chain, setChain] = useState(activeWallet?.chain || "Solana");
+  const [chain, setChain] = useState<string>(
+    ["Solana", "Base", "TON", "Robinhood Chain"].includes(
+      activeWallet?.chain || "",
+    )
+      ? activeWallet!.chain
+      : "Solana",
+  );
   const [step, setStep] = useState<"form" | "review" | "done">("form");
   const [error, setError] = useState("");
   const [copied, setCopied] = useState(false);
@@ -485,13 +485,7 @@ export function WalletAction({
                 setCopied(false);
               }}
             >
-              {[
-                "Solana",
-                "Base",
-                "Ethereum",
-                "BNB Chain",
-                "Robinhood Chain",
-              ].map((c) => (
+              {["Solana", "Base", "TON", "Robinhood Chain"].map((c) => (
                 <option key={c}>{c}</option>
               ))}
             </select>
@@ -1360,7 +1354,6 @@ export function People({ initial }: { initial?: Role }) {
       <div className="wallet-page-title">
         <div>
           <h1>People</h1>
-          <p>Creators, callers and traders. Demonstration histories.</p>
         </div>
         <Link
           className="icon-button"
@@ -1382,16 +1375,8 @@ export function People({ initial }: { initial?: Role }) {
           </button>
         ))}
       </div>
-      <DiscoveryPreview role={role} />
+      {role === "Trader" && <DiscoveryPreview role={role} />}
       <Directory key={role} category={role} embedded />
-      <Link className="reputation-link" to="/hire">
-        <Users size={20} />
-        <span>
-          <b>Experience creates opportunity.</b>
-          <small>Find creators open to working together.</small>
-        </span>
-        <ChevronRight size={17} />
-      </Link>
     </div>
   );
 }

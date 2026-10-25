@@ -21,15 +21,7 @@ const copy = {
   Creator: {
     title: "Creators",
     sub: "Launch outcomes, graduation rate and attributable fees.",
-    criteria: [
-      "Launches",
-      "Graduations",
-      "Reached $100K",
-      "Reached $500K",
-      "Reached $1M+",
-      "Highest observed cap",
-      "Creator fees",
-    ],
+    criteria: ["Created", "Migrated"],
     icon: Users,
   },
   Trader: {
@@ -41,7 +33,7 @@ const copy = {
   Caller: {
     title: "Callers",
     sub: "Original call times, market-cap baselines and subsequent outcomes.",
-    criteria: ["Call success", "Verified buys", "Trading performance"],
+    criteria: ["Called", "Call multiple", "Sold multiple"],
     icon: Megaphone,
   },
 };
@@ -108,19 +100,23 @@ export default function Leaderboards({
   const rankingValue = (u: User) => {
     if (role === "Creator") {
       const a = creatorAchievements(u);
-      return metric === "Launches"
-        ? a.launches
-        : metric === "Graduations"
-          ? a.graduated
-          : metric === "Reached $100K"
-            ? a.above100k
-            : metric === "Reached $500K"
-              ? a.above500k
-              : metric === "Reached $1M+"
-                ? a.above1m
-                : metric === "Highest observed cap"
-                  ? a.highest
-                  : a.fees;
+      return metric === "Migrated"
+        ? (u.migrated ?? 0)
+        : metric === "Created"
+          ? a.launches
+          : metric === "Launches"
+            ? a.launches
+            : metric === "Graduations"
+              ? a.graduated
+              : metric === "Reached $100K"
+                ? a.above100k
+                : metric === "Reached $500K"
+                  ? a.above500k
+                  : metric === "Reached $1M+"
+                    ? a.above1m
+                    : metric === "Highest observed cap"
+                      ? a.highest
+                      : a.fees;
     }
     if (role === "Trader")
       return metric === "Win rate"
@@ -128,11 +124,17 @@ export default function Leaderboards({
         : metric === "Trading volume"
           ? tradingEvidence(u).volume
           : u.pnl;
-    return metric === "Verified buys"
-      ? qualifiedCalls(u).length
-      : metric === "Trading performance"
-        ? u.pnl
-        : success(u);
+    return metric === "Called"
+      ? calls.filter((c) => c.userId === u.id).length
+      : metric === "Call multiple"
+        ? Math.max(0, ...userCalls(u).map((c) => c.outcome))
+        : metric === "Sold multiple"
+          ? 0
+          : metric === "Verified buys"
+            ? qualifiedCalls(u).length
+            : metric === "Trading performance"
+              ? u.pnl
+              : success(u);
   };
   const list = users
     .filter(
@@ -147,6 +149,102 @@ export default function Leaderboards({
         `${u.name} ${u.social.username}`.includes(search.toLowerCase()),
     )
     .sort((a, b) => rankingValue(b) - rankingValue(a));
+  if (["Creator", "Caller"].includes(role))
+    return (
+      <section
+        className="compact-board"
+        aria-label={`${config.title} leaderboard`}
+      >
+        <div className="compact-board-tools">
+          <label className="inline-search">
+            <Search size={16} />
+            <input
+              aria-label={`Search ${role.toLowerCase()}s`}
+              placeholder={`Search ${config.title.toLowerCase()}`}
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+          </label>
+          <select
+            aria-label={`Rank ${role.toLowerCase()}s by`}
+            value={metric}
+            onChange={(e) => setMetric(e.target.value)}
+          >
+            {config.criteria.map((c) => (
+              <option key={c}>{c}</option>
+            ))}
+          </select>
+        </div>
+        <div className={`compact-board-labels ${role.toLowerCase()}`}>
+          <span>Account</span>
+          {role === "Creator" ? (
+            <>
+              <span>Created</span>
+              <span>Migrated</span>
+            </>
+          ) : (
+            <>
+              <span>Called</span>
+              <span>Call ×</span>
+              <span>Sold ×</span>
+            </>
+          )}
+        </div>
+        <div className="compact-board-list">
+          {list.map((u) => {
+            const recorded = calls.filter((c) => c.userId === u.id);
+            const best = recorded.length
+              ? Math.max(...recorded.map((c) => c.outcome))
+              : null;
+            return (
+              <Link
+                className={`compact-person ${role.toLowerCase()}`}
+                key={u.id}
+                to={`/profile/${u.id}`}
+              >
+                <span className="compact-person-identity">
+                  <span
+                    className="compact-portrait"
+                    style={{ background: u.color + "30", color: u.color }}
+                    aria-hidden="true"
+                  >
+                    <svg viewBox="0 0 40 40" width="36" height="36">
+                      <circle cx="20" cy="14" r="7" fill="currentColor" />
+                      <path d="M7 37v-5a13 13 0 0126 0v5" fill="currentColor" />
+                    </svg>
+                  </span>
+                  <span>
+                    <b>{u.name}</b>
+                    <small>@{u.social.username}</small>
+                  </span>
+                </span>
+                {role === "Creator" ? (
+                  <>
+                    <strong>{u.launches}</strong>
+                    <strong>{u.migrated ?? 0}</strong>
+                  </>
+                ) : (
+                  <>
+                    <strong>{recorded.length}</strong>
+                    <strong
+                      className={
+                        best !== null && best >= 1 ? "positive" : "negative"
+                      }
+                    >
+                      {best === null ? "—" : `${best.toFixed(1)}×`}
+                    </strong>
+                    <strong title="Realised sale multiple unavailable">
+                      —
+                    </strong>
+                  </>
+                )}
+              </Link>
+            );
+          })}
+        </div>
+        {!list.length && <p className="wallet-empty">No results</p>}
+      </section>
+    );
   return (
     <>
       <div className="page-heading">

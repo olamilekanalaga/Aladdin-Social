@@ -162,33 +162,31 @@ test("call precedes buy, qualifies through its recorded purchase and preserves o
   await page.goto("/activity");
   await expect(page.locator(".wallet-activity")).toContainText("Sold ALADDIN");
 });
-test("bridge walkthrough never mutates wallet balances", async ({ page }) => {
+test("home removes bridge and receive offers the four requested networks", async ({
+  page,
+}) => {
   await onboard(page);
-  const before = await page.locator(".total-balance").textContent();
-  await page.getByRole("button", { name: "Bridge", exact: true }).click();
-  await page.getByLabel("To network").selectOption("Solana");
-  await page.getByRole("button", { name: "Preview bridge" }).click();
-  await expect(page.getByRole("alert")).toContainText("different networks");
-  await page.getByLabel("To network").selectOption("Base");
-  await page.getByRole("button", { name: "Preview bridge" }).click();
-  await page.screenshot({ path: "artifacts/mvp-bridge-preview-393.png" });
-  await page.getByRole("button", { name: "Confirm demonstration" }).click();
-  await page.getByRole("button", { name: "Done", exact: true }).click();
-  await expect(page.locator(".total-balance")).toHaveText(before!);
+  await expect(
+    page.getByRole("button", { name: "Bridge", exact: true }),
+  ).toHaveCount(0);
+  await page.getByRole("button", { name: "Receive", exact: true }).click();
+  await expect(page.getByLabel("Network").locator("option")).toHaveText([
+    "Solana",
+    "Base",
+    "TON",
+    "Robinhood Chain",
+  ]);
+  await page.getByLabel("Network").selectOption("TON");
+  await expect(page.getByRole("dialog")).toContainText("not a payment address");
 });
 test("creator achievement filters lead to server-authorised hiring and a local notification receipt", async ({
   page,
 }) => {
   await onboard(page);
   await page.goto("/creators");
-  await page.getByLabel("Min. launches").fill("999");
-  await expect(
-    page.getByText(
-      "No people match your filters. Try a lower achievement threshold.",
-    ),
-  ).toBeVisible();
-  await page.getByLabel("Min. launches").fill("10");
-  await page.getByLabel("Min. graduations").fill("1");
+  await page.getByLabel("Search creators").fill("nobody-found");
+  await expect(page.getByText("No results", { exact: true })).toBeVisible();
+  await page.getByLabel("Search creators").fill("launchking");
   await page
     .getByRole("link", { name: /launchking/ })
     .first()

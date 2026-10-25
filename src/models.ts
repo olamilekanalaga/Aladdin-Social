@@ -30,6 +30,7 @@ export interface User {
   followers: number;
   launches: number;
   graduated: number;
+  migrated?: number;
   winRate: number;
   pnl: number;
   fees: number;

@@ -272,7 +272,7 @@ export function IdentityManagement() {
         </button>
       ) : (
         <>
-          <Link className="wallet-primary" to="/people">
+          <Link className="wallet-primary" to="/profile/discovery">
             View discovery preview <ArrowUpRight size={16} />
           </Link>
           <button

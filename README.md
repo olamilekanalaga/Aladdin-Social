@@ -4,6 +4,9 @@ MVP V1 uses the Signal Blue mobile system with **Wallet · Discover · Create ·
 
 A wallet-first mobile application prototype with creator, caller and trader reputation integrated into discovery and token research. First-time browsers choose an existing-wallet or new-wallet demonstration; completed setup opens directly to balances and holdings. The hierarchy is **Wallet → Assets → Trading → Discovery → Reputation → Opportunities**. Financial data, wallet actions, identity attestations and events remain simulations; no real money, custody or trading is enabled.
 
+
+Latest UI update: compact Creator rows show Created/Migrated; Caller rows show published-token count, best observed call multiple and a sale multiple only when evidence exists (currently unavailable in the seed dataset). The leaderboard contains no explanatory summaries. Home has no Bridge button. Receive previews offer Solana, Base, TON and Robinhood Chain; these are not live deposit addresses. Brighter charcoal surfaces, short entry/tap motion and reduced-motion support are enabled. Automatic bridging/neutral-asset settlement remains a future API integration.
+
 ## Run locally
 
 Node.js 22.12+ (tested with Node 24), npm, and two terminals:
